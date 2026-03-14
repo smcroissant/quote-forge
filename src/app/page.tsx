@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
 export default function Home() {
-  redirect("/dashboard");
+  // Landing page is at /home
+  // Authenticated users get redirected to /dashboard by middleware
+  redirect("/home");
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Loader2, Plus, FileText, Eye, Receipt, Euro, Clock, AlertTriangle } from "lucide-react";
 import { CSVExportButton } from "@/components/ui/csv-export-button";
 import { invoicesCSVColumns } from "@/lib/csv";
-import { TableSkeleton, CardSkeleton } from "@/components/ui/table-skeleton";
+import { ResponsiveList, CardFieldRow } from "@/components/ui/responsive-list";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -38,6 +36,7 @@ function formatCurrency(value: string | number): string {
 }
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("");
 
   const { data: invoices, isLoading } = trpc.invoices.getAll.useQuery({
@@ -49,14 +48,14 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Factures</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Factures</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Gérez vos factures et suivez les paiements
           </p>
         </div>
-        <Button render={(props) => (
+        <Button className="w-full sm:w-auto" render={(props) => (
           <Link href="/invoices/new" {...props}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle facture
@@ -65,56 +64,55 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats cards */}
-      {!stats && <CardSkeleton />}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total facturé</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium">Total facturé</CardTitle>
               <Euro className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.totalInvoiced)} €</div>
+            <CardContent className="px-4 pb-4">
+              <div className="text-lg sm:text-2xl font-bold">{formatCurrency(stats.totalInvoiced)} €</div>
               <p className="text-xs text-muted-foreground">{stats.totalInvoices} factures</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Encaissé</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium">Encaissé</CardTitle>
               <Receipt className="h-4 w-4 text-green-600" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalPaid)} €</div>
+            <CardContent className="px-4 pb-4">
+              <div className="text-lg sm:text-2xl font-bold text-green-600">{formatCurrency(stats.totalPaid)} €</div>
               <p className="text-xs text-muted-foreground">{stats.statusCounts.paid ?? 0} payées</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">En attente</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium">En attente</CardTitle>
               <Clock className="h-4 w-4 text-amber-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.outstanding)} €</div>
+            <CardContent className="px-4 pb-4">
+              <div className="text-lg sm:text-2xl font-bold">{formatCurrency(stats.outstanding)} €</div>
               <p className="text-xs text-muted-foreground">à encaisser</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">En retard</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium">En retard</CardTitle>
               <AlertTriangle className="h-4 w-4 text-red-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{formatCurrency(stats.totalOverdue)} €</div>
+            <CardContent className="px-4 pb-4">
+              <div className="text-lg sm:text-2xl font-bold text-red-600">{formatCurrency(stats.totalOverdue)} €</div>
               <p className="text-xs text-muted-foreground">{stats.statusCounts.overdue ?? 0} factures</p>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Filter */}
-      <div className="flex gap-4">
+      {/* Filters */}
+      <div className="flex gap-2">
         <Select value={statusFilter} onValueChange={(val) => val && setStatusFilter(val)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] h-10">
             <SelectValue placeholder="Tous les statuts" />
           </SelectTrigger>
           <SelectContent>
@@ -144,75 +142,72 @@ export default function InvoicesPage() {
         />
       </div>
 
-      {/* Table */}
+      {/* Content */}
       {isLoading ? (
-        <TableSkeleton columns={7} />
-      ) : !invoices || invoices.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Aucune facture
-            </CardTitle>
-            <CardDescription>
-              Convertissez un devis accepté en facture ou créez-en une directement.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button render={(props) => (
-              <Link href="/invoices/new" {...props}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvelle facture
+        <div className="flex h-[300px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <ResponsiveList
+          items={invoices ?? []}
+          getItemId={(item) => item.invoice.id}
+          onRowClick={(item) => router.push(`/invoices/${item.invoice.id}`)}
+          emptyState={
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Aucune facture
+                </CardTitle>
+                <CardDescription>
+                  Convertissez un devis accepté en facture ou créez-en une directement.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button render={(props) => (
+                  <Link href="/invoices/new" {...props}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Nouvelle facture
+                  </Link>
+                )} />
+              </CardContent>
+            </Card>
+          }
+          columns={[
+            { key: "number", header: "N°", render: (item) => <span className="font-mono text-sm">{item.invoice.invoiceNumber}</span> },
+            { key: "client", header: "Client", render: (item) => item.clientName ?? "—" },
+            { key: "title", header: "Titre", render: (item) => item.invoice.title ?? "—" },
+            { key: "status", header: "Statut", render: (item) => {
+              const status = statusConfig[item.invoice.status] ?? statusConfig.draft;
+              return <Badge variant={status.variant}>{status.label}</Badge>;
+            }},
+            { key: "due", header: "Échéance", className: "text-sm text-muted-foreground", render: (item) => formatDate(item.invoice.dueDate) },
+            { key: "total", header: "Total TTC", className: "text-right", render: (item) => <span className="font-medium">{formatCurrency(item.invoice.total)} €</span> },
+          ]}
+          cardHeader={(item) => (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-semibold">{item.invoice.invoiceNumber}</span>
+                <Badge variant={(statusConfig[item.invoice.status] ?? statusConfig.draft).variant} className="text-xs">
+                  {(statusConfig[item.invoice.status] ?? statusConfig.draft).label}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground truncate mt-0.5">{item.clientName ?? "—"}</p>
+            </div>
+          )}
+          cardFields={[
+            { key: "title", render: (item) => <CardFieldRow label="Titre" value={item.invoice.title ?? "—"} /> },
+            { key: "total", render: (item) => <CardFieldRow label="Total TTC" value={`${formatCurrency(item.invoice.total)} €`} className="font-bold text-indigo-600" /> },
+            { key: "due", render: (item) => <CardFieldRow label="Échéance" value={formatDate(item.invoice.dueDate)} className="text-muted-foreground" /> },
+          ]}
+          cardActions={(item) => (
+            <Button variant="ghost" size="icon" className="h-10 w-10" render={(props) => (
+              <Link href={`/invoices/${item.invoice.id}`} {...props}>
+                <Eye className="h-5 w-5" />
               </Link>
             )} />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>N°</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Titre</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Échéance</TableHead>
-                <TableHead className="text-right">Total TTC</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((item) => {
-                const status = statusConfig[item.invoice.status] ?? statusConfig.draft;
-                return (
-                  <TableRow key={item.invoice.id}>
-                    <TableCell className="font-mono text-sm">
-                      {item.invoice.invoiceNumber}
-                    </TableCell>
-                    <TableCell>{item.clientName ?? "—"}</TableCell>
-                    <TableCell>{item.invoice.title ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={status.variant}>{status.label}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(item.invoice.dueDate)}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(item.invoice.total)} €
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" render={(props) => (
-                        <Link href={`/invoices/${item.invoice.id}`} {...props}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      )} />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+          )}
+        />
       )}
     </div>
   );

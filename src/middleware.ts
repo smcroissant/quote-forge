@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicOnlyRoutes = ["/login", "/register"];
-const alwaysPublicRoutes = ["/q"]; // Public quote viewing
+const publicOnlyRoutes = ["/login", "/register", "/signup"];
+const alwaysPublicRoutes = ["/q", "/home"]; // Public quote viewing + landing
 const protectedRoutes = [
   "/dashboard",
   "/clients",
   "/products",
   "/quotes",
+  "/invoices",
   "/settings",
   "/onboarding",
 ];

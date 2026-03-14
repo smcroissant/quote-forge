@@ -6,7 +6,7 @@ import { eq, and, desc, inArray, sql, gte } from "drizzle-orm";
 export const notificationsRouter = router({
   // ── Get badge counts for sidebar ──────────────────
   getBadgeCounts: protectedProcedure.query(async ({ ctx }) => {
-    const orgId = ctx.organizationId;
+    const orgId = ctx.organizationId!;
 
     const [pendingQuotes, unpaidInvoices, overdueInvoices] = await Promise.all([
       // Quotes needing attention (draft + sent + viewed)
@@ -52,7 +52,7 @@ export const notificationsRouter = router({
   getRecentActivity: protectedProcedure
     .input(z.object({ limit: z.number().min(1).max(50).optional().default(10) }).optional())
     .query(async ({ ctx, input }) => {
-      const orgId = ctx.organizationId;
+      const orgId = ctx.organizationId!;
       const limit = input?.limit ?? 10;
 
       // Get all quotes for this org to filter activities
@@ -120,7 +120,7 @@ export const notificationsRouter = router({
   pollChanges: protectedProcedure
     .input(z.object({ since: z.string().datetime() }))
     .query(async ({ ctx, input }) => {
-      const orgId = ctx.organizationId;
+      const orgId = ctx.organizationId!;
       const sinceDate = new Date(input.since);
 
       // Get quote IDs for this org
