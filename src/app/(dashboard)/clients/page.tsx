@@ -238,7 +238,7 @@ export default function ClientsPage() {
           )}
         </div>
       ) : (
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
           <Table>
             <TableHeader>
               <TableRow>
