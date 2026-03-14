@@ -40,6 +40,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CommandPalette } from "@/components/search/command-palette";
 
 const navItems = [
   {
@@ -221,8 +222,9 @@ export default function DashboardLayout({
 
       <SidebarInset>
         {/* Top bar */}
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
+          <CommandPalette />
         </header>
 
         {/* Main content */}
@@ -230,6 +232,8 @@ export default function DashboardLayout({
           {children}
         </main>
       </SidebarInset>
+
+      {/* Command Palette (global, renders its own trigger) */}
     </SidebarProvider>
   );
 }

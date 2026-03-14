@@ -78,7 +78,11 @@ export async function GET(
         email: org?.[0]?.email ?? null,
         phone: org?.[0]?.phone ?? null,
         address: org?.[0]?.address ?? null,
+        city: org?.[0]?.city ?? null,
+        postalCode: org?.[0]?.postalCode ?? null,
         logo: org?.[0]?.logo ?? null,
+        siret: org?.[0]?.siret ?? null,
+        vatNumber: org?.[0]?.vatNumber ?? null,
       },
       client: {
         name: client?.[0]?.name ?? "Client",
@@ -107,6 +111,7 @@ export async function POST(
     const { token } = await params;
     const body = await request.json();
     const action = body.action as "accept" | "reject";
+    const comment = body.comment as string | undefined;
 
     if (!action || !["accept", "reject"].includes(action)) {
       return NextResponse.json({ error: "Action invalide" }, { status: 400 });
@@ -163,7 +168,7 @@ export async function POST(
       fromStatus: quote.status,
       toStatus: newStatus,
       ipAddress,
-      metadata: JSON.stringify({ source: "public_link", clientAction: action }),
+      metadata: JSON.stringify({ source: "public_link", clientAction: action, comment: comment || null }),
     });
 
     return NextResponse.json({

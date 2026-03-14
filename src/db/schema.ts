@@ -26,6 +26,9 @@ export const organizations = pgTable("organizations", {
   bankName: text("bank_name"),
   bankIban: text("bank_iban"),
   bankBic: text("bank_bic"),
+  // Legal info
+  siret: text("siret"),
+  vatNumber: text("vat_number"), // N° TVA intracommunautaire
   // Payment reminder settings
   remindersEnabled: boolean("reminders_enabled").default(true),
   reminderDay1: integer("reminder_day_1").default(7), // J+7
