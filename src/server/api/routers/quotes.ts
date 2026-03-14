@@ -3,7 +3,9 @@ import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { router, protectedProcedure } from "../trpc";
-import { quotes, quoteLines, clients, products, quoteActivities } from "@/db/schema";
+import { quotes, quoteLines, clients, products, quoteActivities, organizations } from "@/db/schema";
+import { generateQuotePDF } from "@/lib/pdf/generator";
+import { sendQuoteEmail } from "@/lib/email/sender";
 
 // ── Status transition rules ─────────────────────────
 // Draft → Sent → Viewed → Accepted / Rejected / Expired
@@ -553,5 +555,164 @@ export const quotesRouter = router({
       await ctx.db.delete(quotes).where(eq(quotes.id, input.id));
 
       return { success: true };
+    }),
+
+  // ── Send quote by email (Resend) ──────────────────
+  sendEmail: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        to: z.string().email("Email invalide").optional(),
+        customMessage: z.string().max(500).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // 1. Fetch quote with all related data
+      const [quote] = await ctx.db
+        .select()
+        .from(quotes)
+        .where(
+          and(
+            eq(quotes.id, input.id),
+            eq(quotes.organizationId, ctx.organizationId)
+          )
+        )
+        .limit(1);
+
+      if (!quote) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Devis introuvable" });
+      }
+
+      if (quote.status !== "draft" && quote.status !== "sent") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Seuls les devis en brouillon ou déjà envoyés peuvent être envoyés par email",
+        });
+      }
+
+      // 2. Fetch client
+      const [client] = await ctx.db
+        .select()
+        .from(clients)
+        .where(eq(clients.id, quote.clientId))
+        .limit(1);
+
+      if (!client) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Client introuvable" });
+      }
+
+      const recipientEmail = input.to ?? client.email;
+      if (!recipientEmail) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Aucune adresse email — renseignez l'email du client ou saisissez un destinataire",
+        });
+      }
+
+      // 3. Fetch organization
+      const [org] = await ctx.db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, ctx.organizationId))
+        .limit(1);
+
+      // 4. Fetch quote lines
+      const lines = await ctx.db
+        .select()
+        .from(quoteLines)
+        .where(eq(quoteLines.quoteId, quote.id))
+        .orderBy(quoteLines.sortOrder);
+
+      // 5. Generate PDF
+      const pdfBuffer = await generateQuotePDF({
+        quoteNumber: quote.quoteNumber,
+        title: quote.title,
+        status: quote.status,
+        createdAt: quote.createdAt.toISOString(),
+        validUntil: quote.validUntil?.toISOString() ?? null,
+        notes: quote.notes,
+        subtotal: quote.subtotal,
+        taxAmount: quote.taxAmount,
+        total: quote.total,
+        organization: {
+          name: org?.name ?? "Mon Entreprise",
+          email: org?.email ?? null,
+          phone: org?.phone ?? null,
+          address: org?.address ?? null,
+          logo: org?.logo ?? null,
+        },
+        client: {
+          name: client.name,
+          email: client.email,
+          phone: client.phone,
+          address: client.address,
+          city: client.city,
+          postalCode: client.postalCode,
+          country: client.country,
+        },
+        lines: lines.map((line) => ({
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          taxRate: line.taxRate ?? "20.00",
+          lineTotal: line.lineTotal,
+        })),
+      });
+
+      // 6. Build public link
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const publicLink = `${appUrl}/q/${quote.viewToken}`;
+
+      // 7. Send email via Resend
+      const result = await sendQuoteEmail({
+        to: recipientEmail,
+        quoteNumber: quote.quoteNumber,
+        clientName: client.name,
+        total: quote.total,
+        orgName: org?.name ?? "QuoteForge",
+        orgEmail: org?.email,
+        publicLink,
+        customMessage: input.customMessage,
+        pdfBuffer,
+      });
+
+      if (!result.success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Échec de l'envoi : ${result.error}`,
+        });
+      }
+
+      // 8. Update status to 'sent' if it was a draft
+      if (quote.status === "draft") {
+        await ctx.db
+          .update(quotes)
+          .set({
+            status: "sent",
+            sentAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(quotes.id, quote.id));
+      }
+
+      // 9. Log activity
+      await logActivity(ctx.db, {
+        quoteId: quote.id,
+        userId: ctx.session.session.userId,
+        action: "email_sent",
+        fromStatus: quote.status,
+        toStatus: quote.status === "draft" ? "sent" : quote.status,
+        metadata: {
+          emailId: result.emailId,
+          recipient: recipientEmail,
+          resent: quote.status === "sent",
+        },
+      });
+
+      return {
+        success: true,
+        emailId: result.emailId,
+        statusUpdated: quote.status === "draft",
+      };
     }),
 });

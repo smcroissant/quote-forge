@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc-client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SendEmailModal } from "@/components/quotes/send-email-modal";
 import {
   Table,
   TableBody,
@@ -53,6 +54,7 @@ import {
   Plus,
   RefreshCw,
   AlertTriangle,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,6 +88,7 @@ const activityConfig: Record<string, { label: string; icon: typeof Circle; color
   viewed: { label: "Consulté", icon: Eye, color: "text-purple-500" },
   deleted: { label: "Supprimé", icon: Trash2, color: "text-red-500" },
   pdf_generated: { label: "PDF généré", icon: FileText, color: "text-green-500" },
+  email_sent: { label: "Email envoyé", icon: Send, color: "text-indigo-500" },
 };
 
 function formatDate(date: Date | string | null): string {
@@ -192,6 +195,20 @@ function Timeline({ quoteId }: { quoteId: string }) {
                         </span>
                       )}
                     </>
+                  ) : item.activity.action === "email_sent" ? (
+                    <>
+                      Email envoyé
+                      {metadata?.recipient && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}à {metadata.recipient}
+                        </span>
+                      )}
+                      {metadata?.resent && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}(relance)
+                        </span>
+                      )}
+                    </>
                   ) : (
                     config.label
                   )}
@@ -249,6 +266,26 @@ export default function QuoteDetailPage() {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  // ── Send email mutation ──
+  const [isSending, setIsSending] = useState(false);
+
+  const sendEmail = async () => {
+    setIsSending(true);
+    try {
+      const res = await fetch(`/api/quotes/${quoteId}/send`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Erreur lors de l'envoi");
+      }
+      toast.success(`Devis envoyé à ${data.message?.replace("Devis envoyé à ", "") ?? "le client"}`);
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -309,6 +346,28 @@ export default function QuoteDetailPage() {
             <Download className="mr-2 h-4 w-4" />
             PDF
           </Button>
+          <SendEmailModal
+            quoteId={quote.id}
+            quoteNumber={quote.quoteNumber}
+            clientEmail={quote.client?.email}
+            clientName={quote.client?.name ?? "Client"}
+            total={quote.total}
+            onSuccess={() => refetch()}
+            isDisabled={isTerminal}
+          />
+          {quote.status === "draft" && (
+            <Button
+              onClick={sendEmail}
+              disabled={isSending}
+            >
+              {isSending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="mr-2 h-4 w-4" />
+              )}
+              {isSending ? "Envoi..." : "Envoyer par email"}
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
               <MoreHorizontal className="mr-2 h-4 w-4" />
@@ -317,34 +376,42 @@ export default function QuoteDetailPage() {
             <DropdownMenuContent align="end">
               {/* Edit (draft only) */}
               {quote.status === "draft" && (
-                <DropdownMenuItem
-                  render={(props) => (
-                    <Link href={`/quotes/${quote.id}/edit`} {...props}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Modifier
-                    </Link>
-                  )}
-                />
+                <>
+                  <DropdownMenuItem
+                    render={(props) => (
+                      <Link href={`/quotes/${quote.id}/edit`} {...props}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Modifier
+                      </Link>
+                    )}
+                  />
+                  <DropdownMenuItem onClick={sendEmail} disabled={isSending}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    {isSending ? "Envoi en cours..." : "Envoyer par email"}
+                  </DropdownMenuItem>
+                </>
               )}
 
-              {/* Status transitions */}
-              {validTransitions.map((targetStatus) => {
-                const label = transitionLabels[targetStatus];
-                if (!label) return null;
-                const TransitionIcon = label.icon;
-                return (
-                  <DropdownMenuItem
-                    key={targetStatus}
-                    onClick={() =>
-                      updateStatus.mutate({ id: quote.id, status: targetStatus as "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired" })
-                    }
-                    disabled={updateStatus.isPending}
-                  >
-                    <TransitionIcon className="mr-2 h-4 w-4" />
-                    {label.label}
-                  </DropdownMenuItem>
-                );
-              })}
+              {/* Status transitions (skip "sent" for drafts — email button handles it) */}
+              {validTransitions
+                .filter((s) => !(quote.status === "draft" && s === "sent"))
+                .map((targetStatus) => {
+                  const label = transitionLabels[targetStatus];
+                  if (!label) return null;
+                  const TransitionIcon = label.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={targetStatus}
+                      onClick={() =>
+                        updateStatus.mutate({ id: quote.id, status: targetStatus as "draft" | "sent" | "viewed" | "accepted" | "rejected" | "expired" })
+                      }
+                      disabled={updateStatus.isPending}
+                    >
+                      <TransitionIcon className="mr-2 h-4 w-4" />
+                      {label.label}
+                    </DropdownMenuItem>
+                  );
+                })}
 
               {/* Delete (draft only) */}
               {quote.status === "draft" && (
