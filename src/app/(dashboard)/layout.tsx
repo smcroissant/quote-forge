@@ -42,6 +42,7 @@ import {
 import { toast } from "sonner";
 import { CommandPalette } from "@/components/search/command-palette";
 import { NotificationProvider, useNotifications } from "@/components/notifications/notification-provider";
+import { FeedbackWidget } from "@/components/feedback-widget";
 
 const navItems = [
   {
@@ -256,7 +257,8 @@ export default function DashboardLayout({
         </main>
       </SidebarInset>
 
-      {/* Command Palette (global, renders its own trigger) */}
+      {/* Feedback widget (floating button) */}
+      <FeedbackWidget />
     </SidebarProvider>
     </NotificationProvider>
   );

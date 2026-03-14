@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -9,35 +10,13 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        // Apply to all routes
         source: "/(.*)",
         headers: [
-          // Prevent clickjacking
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          // Prevent MIME type sniffing
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          // Referrer policy
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
-          // XSS Protection (legacy browsers)
-          {
-            key: "X-XSS-Protection",
-            value: "1; mode=block",
-          },
-          // Prevent DNS prefetching
-          {
-            key: "X-DNS-Prefetch-Control",
-            value: "on",
-          },
-          // Strict Transport Security (HTTPS only in prod)
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
           ...(isProd
             ? [
                 {
@@ -46,21 +25,19 @@ const nextConfig: NextConfig = {
                 },
               ]
             : []),
-          // Permissions Policy (restrict features)
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
           },
-          // Content Security Policy
           {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js needs unsafe-eval/inline
-              "style-src 'self' 'unsafe-inline'", // Tailwind needs unsafe-inline
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              "connect-src 'self' https://*.sentry.io",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -71,8 +48,19 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Disable x-powered-by header
   poweredByHeader: false,
 };
 
-export default nextConfig;
+// ── Sentry Config ──────────────────────────────────
+const sentryOptions = {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: true,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: true,
+};
+
+export default withSentryConfig(nextConfig, sentryOptions);
