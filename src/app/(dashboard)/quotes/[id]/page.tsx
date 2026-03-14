@@ -267,25 +267,7 @@ export default function QuoteDetailPage() {
     onError: (err) => toast.error(err.message),
   });
 
-  // ── Send email mutation ──
-  const [isSending, setIsSending] = useState(false);
-
-  const sendEmail = async () => {
-    setIsSending(true);
-    try {
-      const res = await fetch(`/api/quotes/${quoteId}/send`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error ?? "Erreur lors de l'envoi");
-      }
-      toast.success(`Devis envoyé à ${data.message?.replace("Devis envoyé à ", "") ?? "le client"}`);
-      refetch();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi");
-    } finally {
-      setIsSending(false);
-    }
-  };
+  // ── Send email is handled by SendEmailModal component ──
 
   if (isLoading) {
     return (
@@ -356,17 +338,14 @@ export default function QuoteDetailPage() {
             isDisabled={isTerminal}
           />
           {quote.status === "draft" && (
-            <Button
-              onClick={sendEmail}
-              disabled={isSending}
-            >
-              {isSending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="mr-2 h-4 w-4" />
-              )}
-              {isSending ? "Envoi..." : "Envoyer par email"}
-            </Button>
+            <SendEmailModal
+              quoteId={quote.id}
+              quoteNumber={quote.quoteNumber}
+              clientEmail={quote.client?.email}
+              clientName={quote.client?.name ?? "Client"}
+              total={quote.total}
+              onSuccess={refetch}
+            />
           )}
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
@@ -376,26 +355,18 @@ export default function QuoteDetailPage() {
             <DropdownMenuContent align="end">
               {/* Edit (draft only) */}
               {quote.status === "draft" && (
-                <>
-                  <DropdownMenuItem
-                    render={(props) => (
-                      <Link href={`/quotes/${quote.id}/edit`} {...props}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Modifier
-                      </Link>
-                    )}
-                  />
-                  <DropdownMenuItem onClick={sendEmail} disabled={isSending}>
-                    <Mail className="mr-2 h-4 w-4" />
-                    {isSending ? "Envoi en cours..." : "Envoyer par email"}
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem
+                  render={(props) => (
+                    <Link href={`/quotes/${quote.id}/edit`} {...props}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Modifier
+                    </Link>
+                  )}
+                />
               )}
 
-              {/* Status transitions (skip "sent" for drafts — email button handles it) */}
-              {validTransitions
-                .filter((s) => !(quote.status === "draft" && s === "sent"))
-                .map((targetStatus) => {
+              {/* Status transitions */}
+              {validTransitions.map((targetStatus) => {
                   const label = transitionLabels[targetStatus];
                   if (!label) return null;
                   const TransitionIcon = label.icon;
