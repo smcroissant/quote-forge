@@ -154,6 +154,9 @@ export const quotes = pgTable("quotes", {
   acceptedAt: timestamp("accepted_at"),
   rejectedAt: timestamp("rejected_at"),
   pdfUrl: text("pdf_url"),
+  viewToken: text("view_token").unique(), // Token for public sharing
+  viewCount: integer("view_count").default(0),
+  lastViewedAt: timestamp("last_viewed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -180,6 +183,19 @@ export const quoteLines = pgTable("quote_lines", {
   quoteIdx: index("quote_lines_quote_idx").on(table.quoteId),
 }));
 
+// ── Quote Views (tracking) ──────────────────────────
+export const quoteViews = pgTable("quote_views", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  quoteId: uuid("quote_id")
+    .notNull()
+    .references(() => quotes.id, { onDelete: "cascade" }),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  viewedAt: timestamp("viewed_at").defaultNow().notNull(),
+}, (table) => ({
+  quoteIdx: index("quote_views_quote_idx").on(table.quoteId),
+}));
+
 // ── Types exports ────────────────────────────────────
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
@@ -195,3 +211,5 @@ export type Quote = typeof quotes.$inferSelect;
 export type NewQuote = typeof quotes.$inferInsert;
 export type QuoteLine = typeof quoteLines.$inferSelect;
 export type NewQuoteLine = typeof quoteLines.$inferInsert;
+export type QuoteView = typeof quoteViews.$inferSelect;
+export type NewQuoteView = typeof quoteViews.$inferInsert;

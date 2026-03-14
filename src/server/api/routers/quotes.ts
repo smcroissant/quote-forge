@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import { router, protectedProcedure } from "../trpc";
 import { quotes, quoteLines, clients, products } from "@/db/schema";
 
@@ -172,6 +173,7 @@ export const quotesRouter = router({
 
       const totals = computeTotals(input.lines);
       const quoteNumber = await generateQuoteNumber(ctx.db, ctx.organizationId);
+      const viewToken = randomBytes(32).toString("hex");
 
       const [quote] = await ctx.db
         .insert(quotes)
@@ -179,6 +181,7 @@ export const quotesRouter = router({
           organizationId: ctx.organizationId,
           clientId: input.clientId,
           quoteNumber,
+          viewToken,
           title: input.title ?? null,
           notes: input.notes ?? null,
           validUntil: input.validUntil ? new Date(input.validUntil) : null,

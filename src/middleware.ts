@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const publicOnlyRoutes = ["/login", "/register"];
+const alwaysPublicRoutes = ["/q"]; // Public quote viewing
 const protectedRoutes = [
   "/dashboard",
   "/clients",
@@ -19,6 +20,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow API routes through
   if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
+  // Always public routes (no auth needed)
+  if (alwaysPublicRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 

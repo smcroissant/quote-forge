@@ -45,6 +45,10 @@ import {
   Edit,
   FileText,
   Building,
+  Download,
+  Share2,
+  Copy,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -159,7 +163,15 @@ export default function QuoteDetailPage() {
         </div>
 
         {/* Actions */}
-        <DropdownMenu>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/api/quotes/${quoteId}/pdf`, "_blank")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
+          <DropdownMenu>
           <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
             <MoreHorizontal className="mr-2 h-4 w-4" />
             Actions
@@ -226,6 +238,7 @@ export default function QuoteDetailPage() {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -272,6 +285,42 @@ export default function QuoteDetailPage() {
               <span className="text-muted-foreground">Valable jusqu&apos;au</span>
               <span>{formatDate(quote.validUntil)}</span>
             </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                <Eye className="mr-1 inline h-3 w-3" />
+                Vues
+              </span>
+              <span>{quote.viewCount ?? 0}</span>
+            </div>
+            {quote.lastViewedAt && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Dernière vue</span>
+                <span>{formatDate(quote.lastViewedAt)}</span>
+              </div>
+            )}
+            {quote.viewToken && (
+              <div className="pt-2">
+                <span className="text-xs text-muted-foreground">Lien de partage</span>
+                <div className="mt-1 flex items-center gap-1">
+                  <code className="flex-1 truncate rounded bg-muted px-2 py-1 text-xs">
+                    {typeof window !== "undefined" ? window.location.origin : ""}/q/{quote.viewToken}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/q/${quote.viewToken}`
+                      );
+                      toast.success("Lien copié !");
+                    }}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
             {quote.sentAt && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Envoyé le</span>
