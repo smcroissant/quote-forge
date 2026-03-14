@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,31 +30,76 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ProductForm, type ProductFormValues } from "./ProductForm";
 import { toast } from "sonner";
 import {
   Plus,
   Search,
   Pencil,
+  Copy,
   Trash2,
   Power,
   Package,
   Loader2,
+  MoreHorizontal,
+  FolderPlus,
+  Tag,
 } from "lucide-react";
 
+// ── Debounce hook ────────────────────────────────────
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function ProductsPage() {
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const search = useDebounce(searchInput, 300);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [showInactive, setShowInactive] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const newCategoryInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
 
   // ── Queries ────────────────────────────────────────
+  const { data: categories } = trpc.categories.getAll.useQuery();
+
+  const categoryFilterValue =
+    categoryFilter === "all"
+      ? undefined
+      : categoryFilter === "uncategorized"
+        ? null
+        : categoryFilter;
+
   const { data: products, isLoading } = trpc.products.getAll.useQuery({
     search: search || undefined,
+    categoryId: categoryFilterValue,
     includeInactive: showInactive,
   });
 
@@ -91,6 +136,17 @@ export default function ProductsPage() {
     onError: (err) => toast.error(err.message),
   });
 
+  const duplicateMutation = trpc.products.duplicate.useMutation({
+    onSuccess: (data) => {
+      toast.success(`"${data.name}" dupliqué ✅`);
+      utils.products.getAll.invalidate();
+      // Open edit dialog on the duplicated product
+      setSelectedProductId(data.id);
+      setEditDialogOpen(true);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const deleteMutation = trpc.products.delete.useMutation({
     onSuccess: () => {
       toast.success("Produit supprimé 🗑️");
@@ -101,19 +157,52 @@ export default function ProductsPage() {
     onError: (err) => toast.error(err.message),
   });
 
+  const createCategoryMutation = trpc.categories.create.useMutation({
+    onSuccess: () => {
+      toast.success("Catégorie créée ✅");
+      setNewCategoryName("");
+      setShowNewCategoryInput(false);
+      utils.categories.getAll.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const deleteCategoryMutation = trpc.categories.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Catégorie supprimée — produits déplacés");
+      setDeleteCategoryDialogOpen(false);
+      setSelectedCategoryId(null);
+      utils.categories.getAll.invalidate();
+      utils.products.getAll.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   // ── Handlers ───────────────────────────────────────
   const handleCreate = (data: ProductFormValues) => {
-    createMutation.mutate(data);
+    createMutation.mutate({
+      ...data,
+      categoryId: data.categoryId || undefined,
+    });
   };
 
   const handleEdit = (data: ProductFormValues) => {
     if (!selectedProductId) return;
-    updateMutation.mutate({ id: selectedProductId, ...data });
+    updateMutation.mutate({
+      id: selectedProductId,
+      ...data,
+      categoryId: data.categoryId === null ? null : data.categoryId,
+    });
   };
 
   const handleDelete = () => {
     if (!selectedProductId) return;
     deleteMutation.mutate({ id: selectedProductId });
+  };
+
+  const handleDeleteCategory = () => {
+    if (!selectedCategoryId) return;
+    deleteCategoryMutation.mutate({ id: selectedCategoryId });
   };
 
   const openEdit = (productId: string) => {
@@ -126,6 +215,23 @@ export default function ProductsPage() {
     setDeleteDialogOpen(true);
   };
 
+  const openDeleteCategory = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setDeleteCategoryDialogOpen(true);
+  };
+
+  const handleCreateCategory = () => {
+    if (!newCategoryName.trim()) return;
+    createCategoryMutation.mutate({ name: newCategoryName.trim() });
+  };
+
+  // Focus new category input when shown
+  useEffect(() => {
+    if (showNewCategoryInput) {
+      newCategoryInputRef.current?.focus();
+    }
+  }, [showNewCategoryInput]);
+
   // ── Format price ───────────────────────────────────
   const formatPrice = (price: string, unit: string) => {
     return `${Number(price).toLocaleString("fr-FR", {
@@ -133,14 +239,20 @@ export default function ProductsPage() {
     })} € / ${unit}`;
   };
 
+  // ── Get category name ──────────────────────────────
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return null;
+    return categories?.find((c) => c.id === categoryId)?.name ?? null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Produits & Services</h1>
+          <h1 className="text-2xl font-bold">Mon catalogue</h1>
           <p className="text-muted-foreground">
-            Gérez votre catalogue de produits et services
+            Produits et services réutilisables dans vos devis
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
@@ -150,16 +262,33 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Rechercher un produit..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
+
+        {/* Category filter */}
+        <Select value={categoryFilter} onValueChange={(v: string | null) => v && setCategoryFilter(v)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Toutes catégories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes catégories</SelectItem>
+            <SelectItem value="uncategorized">Sans catégorie</SelectItem>
+            {categories?.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Button
           variant={showInactive ? "secondary" : "outline"}
           size="sm"
@@ -168,6 +297,85 @@ export default function ProductsPage() {
           {showInactive ? "Masquer inactifs" : "Voir inactifs"}
         </Button>
       </div>
+
+      {/* Categories sidebar / inline management */}
+      {categories && categories.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Tag className="size-4 text-muted-foreground" />
+          {categories.map((cat) => (
+            <Badge
+              key={cat.id}
+              variant={categoryFilter === cat.id ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() =>
+                setCategoryFilter(categoryFilter === cat.id ? "all" : cat.id)
+              }
+            >
+              {cat.name}
+              <button
+                className="ml-1.5 hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDeleteCategory(cat.id);
+                }}
+              >
+                ×
+              </button>
+            </Badge>
+          ))}
+          {/* New category inline */}
+          {showNewCategoryInput ? (
+            <div className="flex items-center gap-1">
+              <Input
+                ref={newCategoryInputRef}
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateCategory();
+                  if (e.key === "Escape") {
+                    setShowNewCategoryInput(false);
+                    setNewCategoryName("");
+                  }
+                }}
+                placeholder="Nom catégorie"
+                className="h-7 w-36 text-xs"
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2"
+                onClick={handleCreateCategory}
+                disabled={!newCategoryName.trim()}
+              >
+                ✓
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs text-muted-foreground"
+              onClick={() => setShowNewCategoryInput(true)}
+            >
+              <FolderPlus className="mr-1 size-3" />
+              Nouvelle
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Show new category if no categories exist */}
+      {(!categories || categories.length === 0) && !showNewCategoryInput && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={() => setShowNewCategoryInput(true)}
+        >
+          <FolderPlus className="mr-2 size-4" />
+          Créer une catégorie
+        </Button>
+      )}
 
       {/* Table */}
       {isLoading ? (
@@ -180,7 +388,7 @@ export default function ProductsPage() {
           <h3 className="text-lg font-medium">Aucun produit</h3>
           <p className="text-muted-foreground mb-4">
             {search
-              ? "Aucun résultat pour cette recherche"
+              ? `Aucun résultat pour "${search}"`
               : "Commencez par créer votre premier produit ou service"}
           </p>
           {!search && (
@@ -196,6 +404,7 @@ export default function ProductsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nom</TableHead>
+                <TableHead>Catégorie</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Prix</TableHead>
                 <TableHead>TVA</TableHead>
@@ -207,7 +416,16 @@ export default function ProductsPage() {
               {products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                  <TableCell>
+                    {getCategoryName(product.categoryId) ? (
+                      <Badge variant="outline">
+                        {getCategoryName(product.categoryId)}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-[250px] truncate">
                     {product.description || "—"}
                   </TableCell>
                   <TableCell>
@@ -222,35 +440,45 @@ export default function ProductsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEdit(product.id)}
-                        title="Modifier"
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          toggleMutation.mutate({ id: product.id })
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button variant="ghost" size="icon" />
                         }
-                        title={product.isActive ? "Désactiver" : "Activer"}
                       >
-                        <Power className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDelete(product.id)}
-                        className="text-destructive hover:text-destructive"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
+                        <MoreHorizontal className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(product.id)}>
+                          <Pencil className="mr-2 size-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            duplicateMutation.mutate({ id: product.id })
+                          }
+                        >
+                          <Copy className="mr-2 size-4" />
+                          Dupliquer
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            toggleMutation.mutate({ id: product.id })
+                          }
+                        >
+                          <Power className="mr-2 size-4" />
+                          {product.isActive ? "Désactiver" : "Activer"}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => openDelete(product.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 size-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -269,10 +497,11 @@ export default function ProductsPage() {
             </DialogDescription>
           </DialogHeader>
           <ProductForm
+            categories={categories}
             onSubmit={handleCreate}
             onCancel={() => setCreateDialogOpen(false)}
             isLoading={createMutation.isPending}
-            submitLabel="Créer"
+            submitLabel="Créer le produit"
           />
         </DialogContent>
       </Dialog>
@@ -288,12 +517,14 @@ export default function ProductsPage() {
           </DialogHeader>
           {selectedProduct && (
             <ProductForm
+              categories={categories}
               defaultValues={{
                 name: selectedProduct.name,
                 description: selectedProduct.description ?? "",
                 unitPrice: selectedProduct.unitPrice,
                 unit: selectedProduct.unit ?? "unité",
                 taxRate: selectedProduct.taxRate ?? "20.00",
+                categoryId: selectedProduct.categoryId,
               }}
               onSubmit={handleEdit}
               onCancel={() => {
@@ -301,26 +532,25 @@ export default function ProductsPage() {
                 setSelectedProductId(null);
               }}
               isLoading={updateMutation.isPending}
-              submitLabel="Enregistrer"
+              submitLabel="Sauvegarder"
             />
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Product Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer ce produit ?</AlertDialogTitle>
             <AlertDialogDescription>
               Cette action est irréversible. Le produit sera définitivement
-              supprimé de votre catalogue.
+              supprimé de votre catalogue. Les devis existants ne seront pas
+              affectés.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => setSelectedProductId(null)}
-            >
+            <AlertDialogCancel onClick={() => setSelectedProductId(null)}>
               Annuler
             </AlertDialogCancel>
             <AlertDialogAction
@@ -328,6 +558,37 @@ export default function ProductsPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Supprimer"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Category Confirmation */}
+      <AlertDialog
+        open={deleteCategoryDialogOpen}
+        onOpenChange={setDeleteCategoryDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette catégorie ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Les produits de cette catégorie seront déplacés vers &quot;Sans
+              catégorie&quot;.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedCategoryId(null)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCategory}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCategoryMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 "Supprimer"

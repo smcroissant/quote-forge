@@ -10,6 +10,11 @@ export const organizations = pgTable("organizations", {
   phone: text("phone"),
   email: text("email"),
   website: text("website"),
+  sector: text("sector"), // Secteur d'activité (onboarding)
+  currency: text("currency").default("EUR"), // Devise
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("20.00"), // TVA par défaut
+  taxEnabled: boolean("tax_enabled").default(true), // Assujetti à la TVA
+  onboardingCompleted: boolean("onboarding_completed").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -94,22 +99,38 @@ export const clients = pgTable("clients", {
   orgIdx: index("clients_org_idx").on(table.organizationId),
 }));
 
+// ── Product Categories ───────────────────────────────
+export const productCategories = pgTable("product_categories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  orgIdx: index("product_categories_org_idx").on(table.organizationId),
+}));
+
 // ── Products / Services ──────────────────────────────
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
+  categoryId: uuid("category_id")
+    .references(() => productCategories.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
-  unit: text("unit").default("unité"), // heure, pièce, forfait, etc.
+  unit: text("unit").default("unité"), // heure, jour, mois, an, pièce, forfait, etc.
   taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("20.00"), // TVA en %
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   orgIdx: index("products_org_idx").on(table.organizationId),
+  categoryIdx: index("products_category_idx").on(table.categoryId),
 }));
 
 // ── Quotes ───────────────────────────────────────────
@@ -166,6 +187,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Client = typeof clients.$inferSelect;
 export type NewClient = typeof clients.$inferInsert;
+export type ProductCategory = typeof productCategories.$inferSelect;
+export type NewProductCategory = typeof productCategories.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type Quote = typeof quotes.$inferSelect;

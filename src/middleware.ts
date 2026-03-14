@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicRoutes = ["/login", "/register"];
+const publicOnlyRoutes = ["/login", "/register"];
 const protectedRoutes = [
   "/dashboard",
   "/clients",
@@ -10,29 +10,41 @@ const protectedRoutes = [
   "/onboarding",
 ];
 
+function hasSession(request: NextRequest): boolean {
+  return !!request.cookies.get("better-auth.session_token");
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow API routes and public pages
+  // Allow API routes through
   if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
-  if (publicRoutes.some((route) => pathname === route)) {
+  const loggedIn = hasSession(request);
+
+  // Public-only routes: redirect to dashboard if already logged in
+  if (publicOnlyRoutes.some((route) => pathname === route)) {
+    if (loggedIn) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
     return NextResponse.next();
   }
 
-  // Root redirect — handled by page.tsx redirect()
+  // Root — let page.tsx handle redirect
   if (pathname === "/") {
     return NextResponse.next();
   }
 
-  // Check auth for protected routes
+  // Protected routes: redirect to login if not logged in
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    const sessionCookie = request.cookies.get("better-auth.session_token");
-
-    if (!sessionCookie) {
-      return NextResponse.redirect(new URL("/login", request.url));
+    if (!loggedIn) {
+      const loginUrl = new URL("/login", request.url);
+      if (pathname !== "/onboarding") {
+        loginUrl.searchParams.set("redirect", pathname);
+      }
+      return NextResponse.redirect(loginUrl);
     }
   }
 
