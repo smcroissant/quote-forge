@@ -467,6 +467,54 @@ export const quotesRouter = router({
       };
     }),
 
+  // ── Get stats (KPIs + status pipeline) ─────────────
+  getStats: protectedProcedure
+    .query(async ({ ctx }) => {
+      const allQuotes = await ctx.db
+        .select({ status: quotes.status, total: quotes.total })
+        .from(quotes)
+        .where(eq(quotes.organizationId, ctx.organizationId));
+
+      const statusCounts: Record<string, number> = {
+        draft: 0,
+        sent: 0,
+        viewed: 0,
+        accepted: 0,
+        rejected: 0,
+        expired: 0,
+      };
+
+      let totalRevenue = 0;
+      let acceptedRevenue = 0;
+
+      for (const q of allQuotes) {
+        statusCounts[q.status] = (statusCounts[q.status] ?? 0) + 1;
+        const amount = parseFloat(q.total) || 0;
+        totalRevenue += amount;
+        if (q.status === "accepted") {
+          acceptedRevenue += amount;
+        }
+      }
+
+      const totalQuotes = allQuotes.length;
+      const conversionRate = totalQuotes > 0
+        ? Math.round((statusCounts.accepted / totalQuotes) * 100)
+        : 0;
+
+      return {
+        statusCounts,
+        totalQuotes,
+        totalRevenue: totalRevenue.toFixed(2),
+        acceptedRevenue: acceptedRevenue.toFixed(2),
+        conversionRate,
+        pipeline: {
+          active: (statusCounts.draft ?? 0) + (statusCounts.sent ?? 0) + (statusCounts.viewed ?? 0),
+          won: statusCounts.accepted ?? 0,
+          lost: (statusCounts.rejected ?? 0) + (statusCounts.expired ?? 0),
+        },
+      };
+    }),
+
   // ── Delete quote (draft only) ─────────────────────
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
