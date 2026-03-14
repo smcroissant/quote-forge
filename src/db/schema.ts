@@ -153,7 +153,7 @@ export const quotes = pgTable("quotes", {
     .notNull()
     .references(() => clients.id, { onDelete: "restrict" }),
   quoteNumber: text("quote_number").notNull(),
-  status: text("status").notNull().default("draft"), // draft, sent, accepted, rejected, expired
+  status: text("status").notNull().default("draft"), // draft, sent, viewed, accepted, rejected, expired
   title: text("title"),
   notes: text("notes"),
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
@@ -206,6 +206,24 @@ export const quoteViews = pgTable("quote_views", {
   quoteIdx: index("quote_views_quote_idx").on(table.quoteId),
 }));
 
+// ── Quote Activities (timeline) ─────────────────────
+export const quoteActivities = pgTable("quote_activities", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  quoteId: uuid("quote_id")
+    .notNull()
+    .references(() => quotes.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+  action: text("action").notNull(), // created, status_changed, updated, viewed, pdf_generated, etc.
+  fromStatus: text("from_status"), // ancien statut (si status_changed)
+  toStatus: text("to_status"), // nouveau statut (si status_changed)
+  metadata: text("metadata"), // JSON string pour infos additionnelles
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  quoteIdx: index("quote_activities_quote_idx").on(table.quoteId),
+  actionIdx: index("quote_activities_action_idx").on(table.action),
+}));
+
 // ── Types exports ────────────────────────────────────
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
@@ -223,3 +241,5 @@ export type QuoteLine = typeof quoteLines.$inferSelect;
 export type NewQuoteLine = typeof quoteLines.$inferInsert;
 export type QuoteView = typeof quoteViews.$inferSelect;
 export type NewQuoteView = typeof quoteViews.$inferInsert;
+export type QuoteActivity = typeof quoteActivities.$inferSelect;
+export type NewQuoteActivity = typeof quoteActivities.$inferInsert;

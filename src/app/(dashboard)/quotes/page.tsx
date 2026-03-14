@@ -27,6 +27,7 @@ import { Loader2, Plus, Search, FileText, Eye } from "lucide-react";
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
   sent: { label: "Envoyé", variant: "default" },
+  viewed: { label: "Vu", variant: "outline" },
   accepted: { label: "Accepté", variant: "default" },
   rejected: { label: "Refusé", variant: "destructive" },
   expired: { label: "Expiré", variant: "outline" },
@@ -92,6 +93,7 @@ export default function QuotesPage() {
             <SelectItem value="all">Tous les statuts</SelectItem>
             <SelectItem value="draft">Brouillons</SelectItem>
             <SelectItem value="sent">Envoyés</SelectItem>
+            <SelectItem value="viewed">Vus</SelectItem>
             <SelectItem value="accepted">Acceptés</SelectItem>
             <SelectItem value="rejected">Refusés</SelectItem>
             <SelectItem value="expired">Expirés</SelectItem>

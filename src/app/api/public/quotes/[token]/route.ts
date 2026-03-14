@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { quotes, quoteLines, clients, organizations, quoteViews } from "@/db/schema";
+import { quotes, quoteLines, clients, organizations, quoteViews, quoteActivities } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 // ── GET /api/public/quotes/[token] ──────────────────
@@ -53,6 +53,9 @@ export async function GET(
     const userAgent = request.headers.get("user-agent") ?? null;
 
     // Track async, don't block the response
+    // If status is "sent", auto-transition to "viewed" on first view
+    const shouldMarkViewed = quote.status === "sent";
+
     Promise.all([
       db.insert(quoteViews).values({
         quoteId: quote.id,
@@ -64,16 +67,36 @@ export async function GET(
         .set({
           viewCount: (quote.viewCount ?? 0) + 1,
           lastViewedAt: new Date(),
+          // Auto-transition sent → viewed on first view
+          ...(shouldMarkViewed ? { status: "viewed" } : {}),
+          ...(shouldMarkViewed ? { updatedAt: new Date() } : {}),
         })
         .where(eq(quotes.id, quote.id)),
+      // Log viewed activity
+      shouldMarkViewed
+        ? db.insert(quoteActivities).values({
+            quoteId: quote.id,
+            userId: null, // external viewer
+            action: "status_changed",
+            fromStatus: "sent",
+            toStatus: "viewed",
+            ipAddress,
+            metadata: JSON.stringify({ source: "public_link" }),
+          })
+        : db.insert(quoteActivities).values({
+            quoteId: quote.id,
+            userId: null,
+            action: "viewed",
+            ipAddress,
+          }),
     ]).catch((err) => console.error("Tracking error:", err));
 
-    // Return quote data
+    // Return quote data (reflect viewed status if we just transitioned)
     return NextResponse.json({
       quote: {
         quoteNumber: quote.quoteNumber,
         title: quote.title,
-        status: quote.status,
+        status: shouldMarkViewed ? "viewed" : quote.status,
         createdAt: quote.createdAt.toISOString(),
         validUntil: quote.validUntil?.toISOString() ?? null,
         notes: quote.notes,
