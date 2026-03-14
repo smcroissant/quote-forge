@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Building2, Receipt, Palette, Upload, Check } from "lucide-react";
+import { Loader2, Save, Building2, Receipt, Palette, Upload, Check, Bell, Play } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,7 @@ const TABS = [
   { id: "info", label: "Informations", icon: Building2 },
   { id: "billing", label: "Facturation", icon: Receipt },
   { id: "branding", label: "Branding", icon: Palette },
+  { id: "reminders", label: "Rappels", icon: Bell },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -592,6 +593,219 @@ export default function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* ── Reminders Tab ──────────────────────────── */}
+      {activeTab === "reminders" && (
+        <RemindersTab />
+      )}
+    </div>
+  );
+}
+
+// ── Reminders Tab Component ─────────────────────────
+function RemindersTab() {
+  const { data: settings, isLoading, refetch } = trpc.paymentReminders.getSettings.useQuery();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [enabled, setEnabled] = useState(true);
+  const [day1, setDay1] = useState(7);
+  const [day2, setDay2] = useState(14);
+  const [day3, setDay3] = useState(30);
+
+  useEffect(() => {
+    if (settings) {
+      setEnabled(settings.enabled);
+      setDay1(settings.day1);
+      setDay2(settings.day2);
+      setDay3(settings.day3);
+    }
+  }, [settings]);
+
+  const updateMutation = trpc.paymentReminders.updateSettings.useMutation({
+    onSuccess: () => {
+      toast.success("Paramètres de rappel enregistrés ✅");
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const triggerMutation = trpc.paymentReminders.triggerNow.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Rappels traités : ${data.sent} envoyés, ${data.skipped} ignorés`);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateMutation.mutateAsync({ enabled, day1, day2, day3 });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Rappels de paiement automatiques</CardTitle>
+          <CardDescription>
+            Le système vérifie quotidiennement les factures impayées et envoie
+            des rappels automatiques à vos clients. Chaque rappel est journalisé
+            dans l&apos;activité de la facture.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Enable toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="font-medium">Activer les rappels automatiques</p>
+              <p className="text-sm text-muted-foreground">
+                Les rappels sont vérifiés quotidiennement par un cron job
+              </p>
+            </div>
+            <Button
+              variant={enabled ? "default" : "outline"}
+              size="sm"
+              onClick={() => setEnabled(!enabled)}
+            >
+              {enabled ? "Activé" : "Désactivé"}
+            </Button>
+          </div>
+
+          {/* Reminder days */}
+          <div className="space-y-4">
+            <p className="text-sm font-medium">Délais de relance (jours après envoi)</p>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>1er rappel (J+?)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={day1}
+                  onChange={(e) => setDay1(parseInt(e.target.value) || 7)}
+                  disabled={!enabled}
+                />
+                <p className="text-xs text-muted-foreground">Rappel courtois</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>2e rappel (J+?)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={day2}
+                  onChange={(e) => setDay2(parseInt(e.target.value) || 14)}
+                  disabled={!enabled}
+                />
+                <p className="text-xs text-muted-foreground">Rappel insisté</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>3e rappel (J+?)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={day3}
+                  onChange={(e) => setDay3(parseInt(e.target.value) || 30)}
+                  disabled={!enabled}
+                />
+                <p className="text-xs text-muted-foreground">Dernier rappel</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Flow preview */}
+          <div className="rounded-lg bg-muted/50 p-4">
+            <p className="text-xs font-medium text-muted-foreground mb-3">FLUX DE RELANCE</p>
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-700 font-medium">
+                Facture envoyée
+              </span>
+              <span className="text-muted-foreground">→ J+{day1} →</span>
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700 font-medium">
+                1er rappel
+              </span>
+              <span className="text-muted-foreground">→ J+{day2} →</span>
+              <span className="rounded-full bg-orange-100 px-3 py-1 text-orange-700 font-medium">
+                2e rappel
+              </span>
+              <span className="text-muted-foreground">→ J+{day3} →</span>
+              <span className="rounded-full bg-red-100 px-3 py-1 text-red-700 font-medium">
+                Dernier rappel
+              </span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => triggerMutation.mutate()}
+              disabled={triggerMutation.isPending}
+            >
+              {triggerMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="mr-2 h-4 w-4" />
+              )}
+              Tester maintenant
+            </Button>
+
+            <Button onClick={handleSave} disabled={isSaving || updateMutation.isPending}>
+              {(isSaving || updateMutation.isPending) ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              Enregistrer
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Comment ça marche ?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            <strong className="text-foreground">1.</strong> Quand une facture est envoyée, le système
+            planifie automatiquement les rappels selon vos délais.
+          </p>
+          <p>
+            <strong className="text-foreground">2.</strong> Chaque jour, le cron job vérifie les rappels
+            dus et envoie les emails de relance.
+          </p>
+          <p>
+            <strong className="text-foreground">3.</strong> Si une facture est payée, les rappels
+            restants sont automatiquement ignorés.
+          </p>
+          <p>
+            <strong className="text-foreground">4.</strong> Les factures en retard (overdue) sont
+            mises à jour automatiquement par le système.
+          </p>
+          <p>
+            <strong className="text-foreground">5.</strong> Tous les rappels sont journalisés dans
+            l&apos;historique d&apos;activité de la facture concernée.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { quotesRouter } from "./routers/quotes";
 import { quoteTemplatesRouter } from "./routers/quote-templates";
 import { invoicesRouter } from "./routers/invoices";
 import { organizationRouter } from "./routers/organization";
+import { paymentRemindersRouter } from "./routers/payment-reminders";
 
 export const appRouter = router({
   products: productsRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   quoteTemplates: quoteTemplatesRouter,
   invoices: invoicesRouter,
   organization: organizationRouter,
+  paymentReminders: paymentRemindersRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -79,6 +79,17 @@ const statusLabels: Record<string, string> = {
 
 // ── Shared helpers ──────────────────────────────────
 
+/** Escape HTML entities to prevent XSS in PDF rendering */
+function escapeHtml(text: string | null | undefined): string {
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function buildClientAddress(client: QuotePDFData["client"]): string {
   return [
     client.address,
@@ -88,11 +99,12 @@ function buildClientAddress(client: QuotePDFData["client"]): string {
     client.country !== "FR" ? client.country : null,
   ]
     .filter(Boolean)
+    .map(escapeHtml)
     .join("<br>");
 }
 
 function buildOrgAddress(org: QuotePDFData["organization"]): string {
-  return [org.address].filter(Boolean).join("<br>");
+  return [org.address].filter(Boolean).map(escapeHtml).join("<br>");
 }
 
 function buildLinesHTML(
@@ -104,10 +116,10 @@ function buildLinesHTML(
       (line, i) => `
     <tr>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: #555;">${i + 1}</td>
-      <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0;">${line.description}</td>
-      <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${line.quantity}</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0;">${escapeHtml(line.description)}</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${escapeHtml(line.quantity)}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${formatCurrency(line.unitPrice)} €</td>
-      <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${line.taxRate}%</td>
+      <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${escapeHtml(line.taxRate)}%</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right; font-weight: 600;">${formatCurrency(line.lineTotal)} €</td>
     </tr>`
     )
@@ -137,7 +149,7 @@ function buildNotesHTML(data: QuotePDFData, showNotes: boolean): string {
   return `
   <div class="notes">
     <div class="notes-label">Notes</div>
-    <div class="notes-text">${data.notes}</div>
+    <div class="notes-text">${escapeHtml(data.notes)}</div>
   </div>`;
 }
 
@@ -149,7 +161,7 @@ function buildTermsHTML(
   return `
   <div class="terms">
     <div class="terms-label">Conditions générales</div>
-    <div class="terms-text">${termsText}</div>
+    <div class="terms-text">${escapeHtml(termsText)}</div>
   </div>`;
 }
 
@@ -167,7 +179,7 @@ function renderClassicLayout(data: QuotePDFData): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Devis ${data.quoteNumber}</title>
+  <title>Devis ${escapeHtml(data.quoteNumber)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -228,7 +240,7 @@ function renderClassicLayout(data: QuotePDFData): string {
 <body>
   <div class="header">
     <div>
-      <div class="company-name">${data.organization.name}</div>
+      <div class="company-name">${escapeHtml(data.organization.name)}</div>
       <div class="company-info">
         ${buildOrgAddress(data.organization) ? buildOrgAddress(data.organization) + "<br>" : ""}
         ${data.organization.email ? data.organization.email + "<br>" : ""}
@@ -237,7 +249,7 @@ function renderClassicLayout(data: QuotePDFData): string {
     </div>
     <div class="quote-title">
       <h1>DEVIS</h1>
-      <div class="quote-number">${data.quoteNumber}</div>
+      <div class="quote-number">${escapeHtml(data.quoteNumber)}</div>
       <span class="status-badge status-${data.status}">${statusLabels[data.status] ?? data.status}</span>
     </div>
   </div>
@@ -246,7 +258,7 @@ function renderClassicLayout(data: QuotePDFData): string {
     <div class="info-block">
       <div class="info-label">Client</div>
       <div class="info-value">
-        <strong>${data.client.name}</strong><br>
+        <strong>${escapeHtml(data.client.name)}</strong><br>
         ${buildClientAddress(data.client) || ""}
         ${data.client.email ? "<br>" + data.client.email : ""}
         ${data.client.phone ? "<br>" + data.client.phone : ""}
@@ -262,7 +274,7 @@ function renderClassicLayout(data: QuotePDFData): string {
     </div>
   </div>
 
-  ${data.title ? `<div class="quote-title-section"><h2>${data.title}</h2></div>` : ""}
+  ${data.title ? `<div class="quote-title-section"><h2>${escapeHtml(data.title)}</h2></div>` : ""}
 
   <table>
     <thead>
@@ -284,7 +296,7 @@ function renderClassicLayout(data: QuotePDFData): string {
   ${buildTermsHTML(showTerms, termsText)}
 
   <div class="footer">
-    ${data.organization.name} — Document généré par QuoteForge
+    ${escapeHtml(data.organization.name)} — Document généré par QuoteForge
   </div>
 </body>
 </html>`;
@@ -305,7 +317,7 @@ function renderModernLayout(data: QuotePDFData): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Devis ${data.quoteNumber}</title>
+  <title>Devis ${escapeHtml(data.quoteNumber)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -372,7 +384,7 @@ function renderModernLayout(data: QuotePDFData): string {
 <body>
   <div class="header">
     <div class="header-company">
-      <div class="company-name">${data.organization.name}</div>
+      <div class="company-name">${escapeHtml(data.organization.name)}</div>
       <div class="company-info">
         ${buildOrgAddress(data.organization) ? buildOrgAddress(data.organization) + "<br>" : ""}
         ${data.organization.email ? data.organization.email + " · " : ""}
@@ -381,7 +393,7 @@ function renderModernLayout(data: QuotePDFData): string {
     </div>
     <div class="header-quote">
       <h1>DEVIS</h1>
-      <div class="quote-number">${data.quoteNumber}</div>
+      <div class="quote-number">${escapeHtml(data.quoteNumber)}</div>
       <span class="status-pill">${statusLabels[data.status] ?? data.status}</span>
     </div>
   </div>
@@ -391,7 +403,7 @@ function renderModernLayout(data: QuotePDFData): string {
       <div class="info-card">
         <div class="info-label">Client</div>
         <div class="info-value">
-          <strong>${data.client.name}</strong>
+          <strong>${escapeHtml(data.client.name)}</strong>
           ${buildClientAddress(data.client) || ""}
           ${data.client.email ? "<br>" + data.client.email : ""}
           ${data.client.phone ? " · " + data.client.phone : ""}
@@ -409,7 +421,7 @@ function renderModernLayout(data: QuotePDFData): string {
       </div>
     </div>
 
-    ${data.title ? `<div class="quote-title-section"><h2>${data.title}</h2></div>` : ""}
+    ${data.title ? `<div class="quote-title-section"><h2>${escapeHtml(data.title)}</h2></div>` : ""}
 
     <table>
       <thead>
@@ -432,7 +444,7 @@ function renderModernLayout(data: QuotePDFData): string {
   </div>
 
   <div class="footer">
-    ${data.organization.name} — Généré avec QuoteForge
+    ${escapeHtml(data.organization.name)} — Généré avec QuoteForge
   </div>
 </body>
 </html>`;
@@ -451,7 +463,7 @@ function renderMinimalLayout(data: QuotePDFData): string {
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Devis ${data.quoteNumber}</title>
+  <title>Devis ${escapeHtml(data.quoteNumber)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -500,16 +512,16 @@ function renderMinimalLayout(data: QuotePDFData): string {
 </head>
 <body>
   <div class="header">
-    <div class="company-name">${data.organization.name}</div>
+    <div class="company-name">${escapeHtml(data.organization.name)}</div>
     <div class="quote-meta">
-      <div class="quote-number">${data.quoteNumber}</div>
+      <div class="quote-number">${escapeHtml(data.quoteNumber)}</div>
       <div class="quote-date">${formatDate(data.createdAt)}</div>
     </div>
   </div>
 
   <div class="section">
     <div class="section-title">Client</div>
-    <div class="client-name">${data.client.name}</div>
+    <div class="client-name">${escapeHtml(data.client.name)}</div>
     <div class="client-detail">
       ${buildClientAddress(data.client) ? buildClientAddress(data.client).replace(/<br>/g, " · ") : ""}
       ${data.client.email ? " · " + data.client.email : ""}
@@ -519,7 +531,7 @@ function renderMinimalLayout(data: QuotePDFData): string {
   ${data.title ? `
   <div class="section">
     <div class="section-title">Objet</div>
-    <div class="quote-title-display">${data.title}</div>
+    <div class="quote-title-display">${escapeHtml(data.title)}</div>
   </div>` : ""}
 
   <div class="section">
@@ -579,7 +591,7 @@ function renderMinimalLayout(data: QuotePDFData): string {
   </div>` : ""}
 
   <div class="footer">
-    ${data.organization.name}
+    ${escapeHtml(data.organization.name)}
   </div>
 </body>
 </html>`;

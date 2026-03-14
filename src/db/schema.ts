@@ -26,6 +26,12 @@ export const organizations = pgTable("organizations", {
   bankName: text("bank_name"),
   bankIban: text("bank_iban"),
   bankBic: text("bank_bic"),
+  // Payment reminder settings
+  remindersEnabled: boolean("reminders_enabled").default(true),
+  reminderDay1: integer("reminder_day_1").default(7), // J+7
+  reminderDay2: integer("reminder_day_2").default(14), // J+14
+  reminderDay3: integer("reminder_day_3").default(30), // J+30
+  reminderEmailSubject: text("reminder_email_subject"), // custom subject prefix
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -313,6 +319,31 @@ export const invoiceLines = pgTable("invoice_lines", {
   invoiceIdx: index("invoice_lines_invoice_idx").on(table.invoiceId),
 }));
 
+// ── Payment Reminders ────────────────────────────────
+export const paymentReminders = pgTable("payment_reminders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceId: uuid("invoice_id")
+    .notNull()
+    .references(() => invoices.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  reminderNumber: integer("reminder_number").notNull(), // 1, 2, or 3
+  type: text("type").notNull().default("email"), // email
+  scheduledAt: timestamp("scheduled_at").notNull(), // when it should be sent
+  sentAt: timestamp("sent_at"), // when it was actually sent (null = pending)
+  status: text("status").notNull().default("pending"), // pending, sent, failed, skipped
+  emailSubject: text("email_subject"),
+  emailContent: text("email_content"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  invoiceIdx: index("payment_reminders_invoice_idx").on(table.invoiceId),
+  orgIdx: index("payment_reminders_org_idx").on(table.organizationId),
+  statusIdx: index("payment_reminders_status_idx").on(table.status),
+  scheduledIdx: index("payment_reminders_scheduled_idx").on(table.scheduledAt),
+}));
+
 // ── Link quotes to invoice ───────────────────────────
 export const quotesRelations = relations(quotes, ({ one }) => ({
   invoice: one(invoices, {
@@ -354,3 +385,5 @@ export type Invoice = typeof invoices.$inferSelect;
 export type NewInvoice = typeof invoices.$inferInsert;
 export type InvoiceLine = typeof invoiceLines.$inferSelect;
 export type NewInvoiceLine = typeof invoiceLines.$inferInsert;
+export type PaymentReminder = typeof paymentReminders.$inferSelect;
+export type NewPaymentReminder = typeof paymentReminders.$inferInsert;
