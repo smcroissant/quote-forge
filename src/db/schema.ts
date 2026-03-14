@@ -7,6 +7,9 @@ export const organizations = pgTable("organizations", {
   slug: text("slug").notNull().unique(),
   logo: text("logo"),
   address: text("address"),
+  city: text("city"),
+  postalCode: text("postal_code"),
+  country: text("country").default("FR"),
   phone: text("phone"),
   email: text("email"),
   website: text("website"),
@@ -15,6 +18,13 @@ export const organizations = pgTable("organizations", {
   taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("20.00"), // TVA par défaut
   taxEnabled: boolean("tax_enabled").default(true), // Assujetti à la TVA
   onboardingCompleted: boolean("onboarding_completed").default(false),
+  // Quote numbering
+  quotePrefix: text("quote_prefix").default("DEV-"),
+  nextQuoteNumber: integer("next_quote_number").default(1),
+  // Bank details
+  bankName: text("bank_name"),
+  bankIban: text("bank_iban"),
+  bankBic: text("bank_bic"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
