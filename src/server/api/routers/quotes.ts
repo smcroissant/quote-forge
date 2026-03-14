@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { router, protectedProcedure } from "../trpc";
-import { quotes, quoteLines, clients, products, quoteActivities, organizations, quoteTemplates } from "@/db/schema";
+import { quotes, quoteLines, clients, products, quoteActivities, organizations, quoteTemplates, invoices } from "@/db/schema";
 import { generateQuotePDF } from "@/lib/pdf/generator";
 import { sendQuoteEmail } from "@/lib/email/sender";
 
@@ -195,7 +195,14 @@ export const quotesRouter = router({
         .where(eq(clients.id, quote.clientId))
         .limit(1);
 
-      return { ...quote, lines, client };
+      // Fetch linked invoice (if any)
+      const [linkedInvoice] = await ctx.db
+        .select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status })
+        .from(invoices)
+        .where(eq(invoices.quoteId, quote.id))
+        .limit(1);
+
+      return { ...quote, lines, client, invoice: linkedInvoice ?? null };
     }),
 
   // ── Get timeline / activity log ───────────────────

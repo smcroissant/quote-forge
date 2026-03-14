@@ -253,6 +253,8 @@ export default function QuoteDetailPage() {
     { enabled: !!quoteId }
   );
 
+  // invoice data comes from quote.invoice (linked invoice)
+
   const updateStatus = trpc.quotes.updateStatus.useMutation({
     onSuccess: () => {
       toast.success("Statut mis à jour");
@@ -316,6 +318,14 @@ export default function QuoteDetailPage() {
                 <StatusIcon className="mr-1 h-3 w-3" />
                 {status.label}
               </Badge>
+              {quote.status === "invoiced" && (quote as any).invoice && (
+                <Button variant="outline" size="sm" render={(props) => (
+                  <Link href={`/invoices/${((quote as any).invoice).id}`} {...props}>
+                    <Receipt className="mr-1.5 size-3.5" />
+                    {((quote as any).invoice).invoiceNumber}
+                  </Link>
+                )} />
+              )}
               {isTerminal && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <AlertTriangle className="size-3" />

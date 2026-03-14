@@ -15,6 +15,13 @@
       "when": 1773459384578,
       "tag": "0001_slippery_chameleon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773459974225,
+      "tag": "0002_sticky_obadiah_stane",
+      "breakpoints": true
     }
   ]
 }

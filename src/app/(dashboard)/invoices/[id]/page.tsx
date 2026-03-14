@@ -135,6 +135,13 @@ export default function InvoiceDetailPage() {
 
         {/* Actions */}
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/api/invoices/${invoiceId}/pdf`, "_blank")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
               <MoreHorizontal className="mr-2 h-4 w-4" />
