@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/server/auth";
 import { db } from "@/db";
-import { quotes, quoteLines, clients, organizations } from "@/db/schema";
+import { quotes, quoteLines, clients, organizations, quoteTemplates } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { generateQuotePDF } from "@/lib/pdf/generator";
+import type { QuoteData } from "@/lib/pdf/generator";
 import { headers } from "next/headers";
 
 export async function GET(
@@ -59,6 +60,34 @@ export async function GET(
       .where(eq(organizations.id, organizationId))
       .limit(1);
 
+    // Fetch template (if linked)
+    let template: QuoteData["template"] = undefined;
+    if (quote.templateId) {
+      const [tpl] = await db
+        .select()
+        .from(quoteTemplates)
+        .where(eq(quoteTemplates.id, quote.templateId))
+        .limit(1);
+
+      if (tpl) {
+        template = {
+          layout: tpl.layout ?? "classic",
+          primaryColor: tpl.primaryColor ?? "#1a1a1a",
+          accentColor: tpl.accentColor ?? "#3b82f6",
+          fontFamily: tpl.fontFamily ?? "system",
+          showLogo: tpl.showLogo ?? true,
+          showOrgDetails: tpl.showOrgDetails ?? true,
+          showClientDetails: tpl.showClientDetails ?? true,
+          showNotes: tpl.showNotes ?? true,
+          showTerms: tpl.showTerms ?? false,
+          termsText: tpl.termsText ?? null,
+          headerHtml: tpl.headerHtml ?? null,
+          footerHtml: tpl.footerHtml ?? null,
+          cssOverrides: tpl.cssOverrides ?? null,
+        };
+      }
+    }
+
     // Generate PDF
     const pdfBuffer = await generateQuotePDF({
       quoteNumber: quote.quoteNumber,
@@ -93,6 +122,7 @@ export async function GET(
         taxRate: line.taxRate ?? "20.00",
         lineTotal: line.lineTotal,
       })),
+      template,
     });
 
     // Update pdfUrl on the quote

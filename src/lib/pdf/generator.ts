@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { generateQuoteHTML } from "./template";
 
-interface QuoteData {
+export interface QuoteData {
   quoteNumber: string;
   title: string | null;
   status: string;
