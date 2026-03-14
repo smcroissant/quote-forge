@@ -24,6 +24,7 @@ const {
   clients,
   quotes,
   quoteLines,
+  quoteTemplates,
 } = schema;
 
 // ── Setup DB connection ──────────────────────────────
@@ -46,6 +47,89 @@ async function seed() {
       website: "https://croissantlabs.fr",
     })
     .returning();
+
+  // ── 1.5 Quote Templates ──────────────────────────
+  console.log("🎨 Creating quote templates...");
+  const [tplMinimal] = await db.insert(quoteTemplates).values({
+    organizationId: null, // Default template (global)
+    name: "Minimal",
+    slug: "minimal",
+    description: "Design épuré, beaucoup d'espace blanc. Idéal pour les devis courts.",
+    layout: "minimal",
+    primaryColor: "#1a1a1a",
+    accentColor: "#999999",
+    fontFamily: "Helvetica",
+    showLogo: false,
+    showOrgDetails: true,
+    showClientDetails: true,
+    showNotes: true,
+    showTerms: false,
+    isDefault: false,
+    isActive: true,
+    sortOrder: 3,
+  }).returning();
+
+  const [tplProfessional] = await db.insert(quoteTemplates).values({
+    organizationId: null,
+    name: "Professionnel",
+    slug: "professional",
+    description: "En-tête coloré, cartes info. Parfait pour les entreprises B2B.",
+    layout: "modern",
+    primaryColor: "#0f172a",
+    accentColor: "#3b82f6",
+    fontFamily: "system",
+    showLogo: true,
+    showOrgDetails: true,
+    showClientDetails: true,
+    showNotes: true,
+    showTerms: false,
+    isDefault: true, // Default template
+    isActive: true,
+    sortOrder: 2,
+  }).returning();
+
+  const [tplDetailed] = await db.insert(quoteTemplates).values({
+    organizationId: null,
+    name: "Détaillé",
+    slug: "detailed",
+    description: "Complet avec conditions générales. Pour les gros projets.",
+    layout: "classic",
+    primaryColor: "#1a1a1a",
+    accentColor: "#3b82f6",
+    fontFamily: "system",
+    showLogo: true,
+    showOrgDetails: true,
+    showClientDetails: true,
+    showNotes: true,
+    showTerms: true,
+    termsText: "Conditions générales de vente :\n\n1. Le présent devis est valable 30 jours à compter de sa date d'émission.\n2. Un acompte de 30% est demandé à la signature du devis.\n3. Le solde est payable à 30 jours après réception de la facture.\n4. Les délais de livraison sont donnés à titre indicatif.\n5. Tout travail supplémentaire fera l'objet d'un avenant.",
+    isDefault: false,
+    isActive: true,
+    sortOrder: 1,
+  }).returning();
+
+  // Custom template for the org (copy of professional with custom color)
+  await db.insert(quoteTemplates).values({
+    organizationId: org.id,
+    name: "CroissantLabs Brand",
+    slug: "croissantlabs-brand",
+    description: "Template personnalisé aux couleurs de CroissantLabs",
+    layout: "modern",
+    primaryColor: "#7c3aed",
+    accentColor: "#a78bfa",
+    fontFamily: "system",
+    showLogo: true,
+    showOrgDetails: true,
+    showClientDetails: true,
+    showNotes: true,
+    showTerms: true,
+    termsText: "Merci pour votre confiance !\n\nPaiement : 30% à la signature, 70% à la livraison.\nDélai de paiement : 30 jours.\nTout retard entraîne des pénalités de 3 fois le taux légal.",
+    isDefault: false,
+    isActive: true,
+    sortOrder: 0,
+  });
+
+  console.log("   → 4 templates créés (3 défauts + 1 custom)");
 
   // ── 2. Test user ───────────────────────────────────
   console.log("👤 Creating test user...");
@@ -428,6 +512,7 @@ async function seed() {
 📊 Données créées :
    • 1 organization (CroissantLabs)
    • 1 utilisateur (simon@croissantlabs.fr / password123)
+   • 4 templates de devis (Minimal, Professionnel, Détaillé, CroissantLabs Brand)
    • 4 catégories (Développement, Design, SEO & Marketing, Maintenance)
    • 13 produits (12 actifs + 1 inactif)
    • 6 clients

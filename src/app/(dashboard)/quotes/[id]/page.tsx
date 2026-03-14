@@ -55,6 +55,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Mail,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +70,7 @@ const statusConfig: Record<
   accepted: { label: "Accepté", variant: "default", icon: Check },
   rejected: { label: "Refusé", variant: "destructive", icon: XCircle },
   expired: { label: "Expiré", variant: "outline", icon: Clock },
+  invoiced: { label: "Facturé", variant: "default", icon: Receipt },
 };
 
 // ── Status transition labels ────────────────────────
@@ -267,6 +269,14 @@ export default function QuoteDetailPage() {
     onError: (err) => toast.error(err.message),
   });
 
+  const convertToInvoice = trpc.invoices.convertFromQuote.useMutation({
+    onSuccess: (invoice) => {
+      toast.success(`Facture ${invoice.invoiceNumber} créée !`);
+      router.push(`/invoices/${invoice.id}`);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   // ── Send email is handled by SendEmailModal component ──
 
   if (isLoading) {
@@ -347,6 +357,19 @@ export default function QuoteDetailPage() {
               onSuccess={refetch}
             />
           )}
+          {quote.status === "accepted" && (
+            <Button
+              onClick={() => convertToInvoice.mutate({ quoteId: quote.id })}
+              disabled={convertToInvoice.isPending}
+            >
+              {convertToInvoice.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Receipt className="mr-2 h-4 w-4" />
+              )}
+              {convertToInvoice.isPending ? "Conversion..." : "Convertir en facture"}
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-muted">
               <MoreHorizontal className="mr-2 h-4 w-4" />
@@ -386,14 +409,28 @@ export default function QuoteDetailPage() {
 
               {/* Delete (draft only) */}
               {quote.status === "draft" && (
+                <DropdownMenuSeparator />
+              )}
+              {quote.status === "draft" && (
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer
+                </DropdownMenuItem>
+              )}
+
+              {/* Convert to invoice (accepted only) */}
+              {quote.status === "accepted" && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => setDeleteDialogOpen(true)}
+                    onClick={() => convertToInvoice.mutate({ quoteId: quote.id })}
+                    disabled={convertToInvoice.isPending}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Supprimer
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Convertir en facture
                   </DropdownMenuItem>
                 </>
               )}

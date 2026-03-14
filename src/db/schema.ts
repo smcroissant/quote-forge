@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, uuid, decimal, integer, boolean, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 // ── Organizations (tenants) ──────────────────────────
 export const organizations = pgTable("organizations", {
@@ -152,8 +153,10 @@ export const quotes = pgTable("quotes", {
   clientId: uuid("client_id")
     .notNull()
     .references(() => clients.id, { onDelete: "restrict" }),
+  templateId: uuid("template_id")
+    .references(() => quoteTemplates.id, { onDelete: "set null" }),
   quoteNumber: text("quote_number").notNull(),
-  status: text("status").notNull().default("draft"), // draft, sent, viewed, accepted, rejected, expired
+  status: text("status").notNull().default("draft"), // draft, sent, viewed, accepted, rejected, expired, invoiced
   title: text("title"),
   notes: text("notes"),
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
@@ -163,6 +166,7 @@ export const quotes = pgTable("quotes", {
   sentAt: timestamp("sent_at"),
   acceptedAt: timestamp("accepted_at"),
   rejectedAt: timestamp("rejected_at"),
+  invoicedAt: timestamp("invoiced_at"),
   pdfUrl: text("pdf_url"),
   viewToken: text("view_token").unique(), // Token for public sharing
   viewCount: integer("view_count").default(0),
@@ -206,6 +210,40 @@ export const quoteViews = pgTable("quote_views", {
   quoteIdx: index("quote_views_quote_idx").on(table.quoteId),
 }));
 
+// ── Quote Templates ─────────────────────────────────
+export const quoteTemplates = pgTable("quote_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  // null org = default template (available to all)
+  name: text("name").notNull(),
+  slug: text("slug").notNull(), // minimal, professional, detailed, etc.
+  description: text("description"),
+  // Template config (JSON)
+  layout: text("layout").notNull().default("classic"), // classic, modern, minimal
+  primaryColor: text("primary_color").default("#1a1a1a"),
+  accentColor: text("accent_color").default("#3b82f6"),
+  fontFamily: text("font_family").default("system"),
+  showLogo: boolean("show_logo").default(true),
+  showOrgDetails: boolean("show_org_details").default(true),
+  showClientDetails: boolean("show_client_details").default(true),
+  showNotes: boolean("show_notes").default(true),
+  showTerms: boolean("show_terms").default(false),
+  termsText: text("terms_text"),
+  headerHtml: text("header_html"), // Custom HTML header override
+  footerHtml: text("footer_html"), // Custom HTML footer override
+  cssOverrides: text("css_overrides"), // Additional CSS
+  // Meta
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  orgIdx: index("quote_templates_org_idx").on(table.organizationId),
+  slugIdx: index("quote_templates_slug_idx").on(table.slug),
+}));
+
 // ── Quote Activities (timeline) ─────────────────────
 export const quoteActivities = pgTable("quote_activities", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -222,6 +260,73 @@ export const quoteActivities = pgTable("quote_activities", {
 }, (table) => ({
   quoteIdx: index("quote_activities_quote_idx").on(table.quoteId),
   actionIdx: index("quote_activities_action_idx").on(table.action),
+}));
+
+// ── Invoices ─────────────────────────────────────────
+export const invoices = pgTable("invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "restrict" }),
+  quoteId: uuid("quote_id")
+    .references(() => quotes.id, { onDelete: "set null" }),
+  invoiceNumber: text("invoice_number").notNull(),
+  status: text("status").notNull().default("draft"), // draft, sent, paid, overdue, cancelled
+  title: text("title"),
+  notes: text("notes"),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
+  taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  dueDate: timestamp("due_date"),
+  sentAt: timestamp("sent_at"),
+  paidAt: timestamp("paid_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  paymentMethod: text("payment_method"), // virement, cheque, carte, espece
+  pdfUrl: text("pdf_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  orgIdx: index("invoices_org_idx").on(table.organizationId),
+  clientIdx: index("invoices_client_idx").on(table.clientId),
+  quoteIdx: index("invoices_quote_idx").on(table.quoteId),
+  numberIdx: index("invoices_number_idx").on(table.invoiceNumber),
+  statusIdx: index("invoices_status_idx").on(table.status),
+}));
+
+// ── Invoice Lines ────────────────────────────────────
+export const invoiceLines = pgTable("invoice_lines", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceId: uuid("invoice_id")
+    .notNull()
+    .references(() => invoices.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("20.00"),
+  lineTotal: decimal("line_total", { precision: 12, scale: 2 }).notNull(),
+  sortOrder: integer("sort_order").default(0),
+}, (table) => ({
+  invoiceIdx: index("invoice_lines_invoice_idx").on(table.invoiceId),
+}));
+
+// ── Link quotes to invoice ───────────────────────────
+export const quotesRelations = relations(quotes, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [quotes.id],
+    references: [invoices.quoteId],
+  }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  quote: one(quotes, {
+    fields: [invoices.quoteId],
+    references: [quotes.id],
+  }),
+  lines: many(invoiceLines),
 }));
 
 // ── Types exports ────────────────────────────────────
@@ -243,3 +348,9 @@ export type QuoteView = typeof quoteViews.$inferSelect;
 export type NewQuoteView = typeof quoteViews.$inferInsert;
 export type QuoteActivity = typeof quoteActivities.$inferSelect;
 export type NewQuoteActivity = typeof quoteActivities.$inferInsert;
+export type QuoteTemplate = typeof quoteTemplates.$inferSelect;
+export type NewQuoteTemplate = typeof quoteTemplates.$inferInsert;
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+export type InvoiceLine = typeof invoiceLines.$inferSelect;
+export type NewInvoiceLine = typeof invoiceLines.$inferInsert;

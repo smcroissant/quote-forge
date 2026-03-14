@@ -31,6 +31,7 @@ const statusConfig: Record<string, { label: string; variant: "default" | "second
   accepted: { label: "Accepté", variant: "default" },
   rejected: { label: "Refusé", variant: "destructive" },
   expired: { label: "Expiré", variant: "outline" },
+  invoiced: { label: "Facturé", variant: "default" },
 };
 
 function formatDate(date: Date | string | null): string {
@@ -97,6 +98,7 @@ export default function QuotesPage() {
             <SelectItem value="accepted">Acceptés</SelectItem>
             <SelectItem value="rejected">Refusés</SelectItem>
             <SelectItem value="expired">Expirés</SelectItem>
+            <SelectItem value="invoiced">Facturés</SelectItem>
           </SelectContent>
         </Select>
       </div>

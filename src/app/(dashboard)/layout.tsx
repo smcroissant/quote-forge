@@ -37,6 +37,7 @@ import {
   LogOut,
   ChevronUp,
   Building2,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,6 +51,11 @@ const navItems = [
     title: "Devis",
     href: "/quotes",
     icon: FileText,
+  },
+  {
+    title: "Factures",
+    href: "/invoices",
+    icon: Receipt,
   },
   {
     title: "Clients",

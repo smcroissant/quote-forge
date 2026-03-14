@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { router, protectedProcedure } from "../trpc";
-import { quotes, quoteLines, clients, products, quoteActivities, organizations } from "@/db/schema";
+import { quotes, quoteLines, clients, products, quoteActivities, organizations, quoteTemplates } from "@/db/schema";
 import { generateQuotePDF } from "@/lib/pdf/generator";
 import { sendQuoteEmail } from "@/lib/email/sender";
 
@@ -14,7 +14,8 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ["sent", "expired"],
   sent: ["viewed", "accepted", "rejected", "expired"],
   viewed: ["accepted", "rejected", "expired"],
-  accepted: [], // terminal
+  accepted: ["invoiced"], // can be converted to invoice
+  invoiced: [], // terminal
   rejected: [], // terminal
   expired: [],  // terminal
 };
@@ -82,6 +83,7 @@ const quoteLineInput = z.object({
 
 const createQuoteInput = z.object({
   clientId: z.string().uuid(),
+  templateId: z.string().uuid().nullable().optional(),
   title: z.string().optional(),
   notes: z.string().optional(),
   validUntil: z.string().datetime().optional(),
@@ -99,7 +101,7 @@ const updateQuoteInput = z.object({
 
 const updateStatusInput = z.object({
   id: z.string().uuid(),
-  status: z.enum(["draft", "sent", "viewed", "accepted", "rejected", "expired"]),
+  status: z.enum(["draft", "sent", "viewed", "accepted", "rejected", "expired", "invoiced"]),
 });
 
 // ── Helper: compute totals ──────────────────────────
@@ -132,7 +134,7 @@ export const quotesRouter = router({
   getAll: protectedProcedure
     .input(
       z.object({
-        status: z.enum(["draft", "sent", "viewed", "accepted", "rejected", "expired"]).optional(),
+        status: z.enum(["draft", "sent", "viewed", "accepted", "rejected", "expired", "invoiced"]).optional(),
         clientId: z.string().uuid().optional(),
         search: z.string().optional(),
         limit: z.number().min(1).max(100).optional().default(50),
@@ -261,6 +263,7 @@ export const quotesRouter = router({
           clientId: input.clientId,
           quoteNumber,
           viewToken,
+          templateId: input.templateId ?? null,
           title: input.title ?? null,
           notes: input.notes ?? null,
           validUntil: input.validUntil ? new Date(input.validUntil) : null,

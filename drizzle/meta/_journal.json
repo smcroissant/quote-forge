@@ -8,6 +8,13 @@
       "when": 1773457512946,
       "tag": "0000_worthless_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773459384578,
+      "tag": "0001_slippery_chameleon",
+      "breakpoints": true
     }
   ]
 }

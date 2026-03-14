@@ -17,6 +17,7 @@ interface QuoteData {
     phone: string | null;
     address: string | null;
     logo: string | null;
+    website?: string | null;
   };
   client: {
     name: string;
@@ -34,6 +35,21 @@ interface QuoteData {
     taxRate: string;
     lineTotal: string;
   }>;
+  template?: {
+    layout: string;
+    primaryColor: string;
+    accentColor: string;
+    fontFamily: string;
+    showLogo: boolean;
+    showOrgDetails: boolean;
+    showClientDetails: boolean;
+    showNotes: boolean;
+    showTerms: boolean;
+    termsText: string | null;
+    headerHtml: string | null;
+    footerHtml: string | null;
+    cssOverrides: string | null;
+  };
 }
 
 export async function generateQuotePDF(data: QuoteData): Promise<Buffer> {

@@ -26,6 +26,7 @@ import {
 import { Loader2, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { TemplateSelector } from "@/components/quotes/template-selector";
 
 // ── Types ───────────────────────────────────────────
 interface QuoteLine {
@@ -65,6 +66,7 @@ export default function NewQuotePage() {
 
   // Form state
   const [clientId, setClientId] = useState("");
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [validUntil, setValidUntil] = useState("");
@@ -159,6 +161,7 @@ export default function NewQuotePage() {
 
     createQuote.mutate({
       clientId,
+      templateId,
       title: title || undefined,
       notes: notes || undefined,
       validUntil: validUntil ? new Date(validUntil).toISOString() : undefined,
@@ -286,6 +289,19 @@ export default function NewQuotePage() {
                       <span>{formatCurrency(totals.total)} €</span>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Template */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Template PDF</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TemplateSelector
+                    selectedId={templateId}
+                    onSelect={setTemplateId}
+                  />
                 </CardContent>
               </Card>
             </div>
