@@ -23,6 +23,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Loader2, Plus, Search, FileText, Eye } from "lucide-react";
+import { CSVExportButton } from "@/components/ui/csv-export-button";
+import { quotesCSVColumns } from "@/lib/csv";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -101,6 +103,21 @@ export default function QuotesPage() {
             <SelectItem value="invoiced">Facturés</SelectItem>
           </SelectContent>
         </Select>
+        <CSVExportButton
+          data={(quotes ?? []).map((item) => ({
+            quoteNumber: item.quote.quoteNumber,
+            createdAt: item.quote.createdAt,
+            clientName: item.clientName ?? "",
+            title: item.quote.title ?? "",
+            status: item.quote.status,
+            subtotal: item.quote.subtotal,
+            taxAmount: item.quote.taxAmount,
+            total: item.quote.total,
+            validUntil: item.quote.validUntil,
+          }))}
+          columns={quotesCSVColumns}
+          filename={`devis-${new Date().toISOString().split("T")[0]}.csv`}
+        />
       </div>
 
       {/* Table */}

@@ -59,6 +59,8 @@ import {
   FolderPlus,
   Tag,
 } from "lucide-react";
+import { CSVExportButton } from "@/components/ui/csv-export-button";
+import { productsCSVColumns } from "@/lib/csv";
 
 // ── Debounce hook ────────────────────────────────────
 function useDebounce<T>(value: T, delay: number): T {
@@ -296,6 +298,20 @@ export default function ProductsPage() {
         >
           {showInactive ? "Masquer inactifs" : "Voir inactifs"}
         </Button>
+        <CSVExportButton
+          data={(products ?? []).map((p) => ({
+            name: p.name,
+            categoryName: categories?.find(c => c.id === p.categoryId)?.name ?? "",
+            description: p.description ?? "",
+            unitPrice: p.unitPrice,
+            unit: p.unit ?? "unité",
+            taxRate: p.taxRate,
+            isActive: p.isActive,
+            createdAt: p.createdAt,
+          }))}
+          columns={productsCSVColumns}
+          filename={`produits-${new Date().toISOString().split("T")[0]}.csv`}
+        />
       </div>
 
       {/* Categories sidebar / inline management */}

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   FileText, Users, Package, Euro, TrendingUp, Clock,
-  ArrowRight, Loader2, CheckCircle2, XCircle, Eye, Send, CircleDot
+  ArrowRight, Loader2, CheckCircle2, XCircle, CircleDot,
+  ArrowUpRight, ArrowDownRight, Receipt, Timer, Trophy,
 } from "lucide-react";
 
 function formatCurrency(value: string | number): string {
@@ -15,6 +16,13 @@ function formatCurrency(value: string | number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatCompactCurrency(value: number): string {
+  if (value >= 10000) {
+    return `${(value / 1000).toFixed(1)}k €`;
+  }
+  return `${formatCurrency(value)} €`;
 }
 
 // ── Status pipeline config ──────────────────────────
@@ -28,99 +36,218 @@ const wonLostConfig = [
   { key: "accepted", label: "Accepté", icon: CheckCircle2, color: "text-green-600", bgColor: "bg-green-50" },
   { key: "rejected", label: "Refusé", icon: XCircle, color: "text-red-600", bgColor: "bg-red-50" },
   { key: "expired", label: "Expiré", icon: Clock, color: "text-amber-600", bgColor: "bg-amber-50" },
+  { key: "invoiced", label: "Facturé", icon: Receipt, color: "text-indigo-600", bgColor: "bg-indigo-50" },
 ] as const;
 
-export default function DashboardPage() {
-  const { data: stats, isLoading } = trpc.quotes.getStats.useQuery();
-  const { data: productsData } = trpc.products.getAll.useQuery();
-  const { data: clientsData } = trpc.clients.getAll.useQuery();
+// ── Simple bar chart component ──────────────────────
+function MiniBarChart({ data }: { data: { label: string; invoiced: number; paid: number }[] }) {
+  const maxValue = Math.max(...data.map(d => Math.max(d.invoiced, d.paid)), 1);
 
-  const productCount = productsData?.length ?? 0;
-  const clientCount = clientsData?.length ?? 0;
+  return (
+    <div className="flex items-end gap-2 h-32 mt-4">
+      {data.map((item, i) => {
+        const invoicedHeight = Math.max((item.invoiced / maxValue) * 100, 2);
+        const paidHeight = Math.max((item.paid / maxValue) * 100, 2);
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div className="flex items-end gap-0.5 h-24 w-full justify-center">
+              <div
+                className="w-3 bg-indigo-200 rounded-t-sm"
+                style={{ height: `${invoicedHeight}%` }}
+                title={`Facturé: ${formatCurrency(item.invoiced)} €`}
+              />
+              <div
+                className="w-3 bg-green-400 rounded-t-sm"
+                style={{ height: `${paidHeight}%` }}
+                title={`Payé: ${formatCurrency(item.paid)} €`}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">{item.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const { data: kpis, isLoading } = trpc.dashboard.getKPIs.useQuery();
+
+  // Compute month-over-month change
+  const revenueChange = kpis?.revenue.lastMonth
+    ? Math.round(((kpis.revenue.currentMonth - kpis.revenue.lastMonth) / Math.max(kpis.revenue.lastMonth, 1)) * 100)
+    : 0;
+
+  const paidChange = kpis?.revenue.paidLastMonth
+    ? Math.round(((kpis.revenue.paidThisMonth - kpis.revenue.paidLastMonth) / Math.max(kpis.revenue.paidLastMonth, 1)) * 100)
+    : 0;
 
   return (
     <div className="space-y-8">
-      {/* Welcome */}
+      {/* Header */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <p className="text-muted-foreground">
-          Voici un aperçu de votre activité sur QuoteForge.
+          Aperçu de votre activité en temps réel
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* ── KPI Cards Row 1: Revenue ─────────────────── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* CA du mois */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Devis au total</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.totalQuotes ?? 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats?.pipeline.active ?? 0} en cours
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CA accepté</CardTitle>
+            <CardTitle className="text-sm font-medium">CA facturé (mois)</CardTitle>
             <Euro className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${formatCurrency(stats?.acceptedRevenue ?? 0)} €`}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${formatCurrency(kpis?.revenue.currentMonth ?? 0)} €`}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Total devis acceptés
+            <p className="text-xs flex items-center gap-1 mt-1">
+              {revenueChange >= 0 ? (
+                <span className="text-green-600 flex items-center"><ArrowUpRight className="h-3 w-3" />{revenueChange}%</span>
+              ) : (
+                <span className="text-red-600 flex items-center"><ArrowDownRight className="h-3 w-3" />{Math.abs(revenueChange)}%</span>
+              )}
+              <span className="text-muted-foreground">vs mois dernier</span>
             </p>
           </CardContent>
         </Card>
 
+        {/* Encaissé */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taux de conversion</CardTitle>
+            <CardTitle className="text-sm font-medium">Encaissé (mois)</CardTitle>
+            <Receipt className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${formatCurrency(kpis?.revenue.paidThisMonth ?? 0)} €`}
+            </div>
+            <p className="text-xs flex items-center gap-1 mt-1">
+              {paidChange >= 0 ? (
+                <span className="text-green-600 flex items-center"><ArrowUpRight className="h-3 w-3" />{paidChange}%</span>
+              ) : (
+                <span className="text-red-600 flex items-center"><ArrowDownRight className="h-3 w-3" />{Math.abs(paidChange)}%</span>
+              )}
+              <span className="text-muted-foreground">vs mois dernier</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Conversion devis → facture */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Devis → Facture</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${stats?.conversionRate ?? 0}%`}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${kpis?.invoices.quoteToInvoiceRate ?? 0}%`}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Devis acceptés / total
+            <p className="text-xs text-muted-foreground mt-1">
+              {kpis?.quotes.conversionRate ?? 0}% devis acceptés · {kpis?.invoices.quoteToInvoiceRate ?? 0}% facturés
             </p>
           </CardContent>
         </Card>
 
+        {/* Délai moyen paiement */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Délai paiement</CardTitle>
+            <Timer className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clientCount}</div>
-            <p className="text-xs text-muted-foreground">
-              {productCount} produits / services
+            <div className="text-2xl font-bold">
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${kpis?.payment.avgDays ?? 0} jours`}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Moyenne sur {kpis?.payment.paidCount ?? 0} factures payées
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pipeline + Recent */}
+      {/* ── Row 2: Outstanding + Top Clients ─────────── */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Encours */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Encours à encaisser</CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${formatCurrency(kpis?.revenue.outstanding ?? 0)} €`}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatCurrency(kpis?.revenue.totalInvoiced ?? 0)} € facturés · {formatCurrency(kpis?.revenue.totalPaid ?? 0)} € encaissés
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Top 5 Clients */}
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Trophy className="h-4 w-4 text-amber-500" />
+                Top 5 clients par CA
+              </CardTitle>
+              <CardDescription>Chiffre d&apos;affaires total (factures)</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : !kpis?.topClients || kpis.topClients.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Aucune facture enregistrée pour le moment
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {kpis.topClients.map((client, i) => {
+                  const maxRevenue = kpis.topClients[0]?.revenue ?? 1;
+                  const barWidth = (client.revenue / maxRevenue) * 100;
+                  return (
+                    <div key={client.id} className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-muted-foreground w-4">
+                        {i + 1}.
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium truncate">{client.name}</span>
+                          <span className="text-sm font-semibold ml-2">{formatCompactCurrency(client.revenue)}</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-indigo-500 rounded-full transition-all"
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Row 3: Pipeline + Revenue Chart ──────────── */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* ── Quote Pipeline ────────────────────────── */}
+        {/* Quote Pipeline */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CircleDot className="h-5 w-5" />
               Pipeline des devis
             </CardTitle>
-            <CardDescription>
-              Répartition par statut de vos devis
-            </CardDescription>
+            <CardDescription>Répartition par statut</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -134,7 +261,7 @@ export default function DashboardPage() {
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">En cours</p>
                   <div className="flex items-center gap-2">
                     {pipelineSteps.map((step, i) => {
-                      const count = stats?.statusCounts[step.key] ?? 0;
+                      const count = kpis?.quotes.statusCounts[step.key] ?? 0;
                       return (
                         <div key={step.key} className="flex items-center gap-2 flex-1">
                           <div className={`h-2 rounded-full ${step.color} flex-1`} style={{ opacity: count > 0 ? 1 : 0.3 }} />
@@ -154,9 +281,9 @@ export default function DashboardPage() {
                 {/* Won / Lost */}
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Résultat</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {wonLostConfig.map((item) => {
-                      const count = stats?.statusCounts[item.key] ?? 0;
+                      const count = kpis?.quotes.statusCounts[item.key] ?? 0;
                       const ItemIcon = item.icon;
                       return (
                         <div key={item.key} className={`rounded-lg p-3 ${item.bgColor}`}>
@@ -175,77 +302,66 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* ── Quick start / CTA ─────────────────────── */}
+        {/* Revenue Evolution */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Actions rapides
+              Évolution CA (6 mois)
             </CardTitle>
             <CardDescription>
-              Vos prochaines étapes
+              <span className="inline-flex items-center gap-1">
+                <span className="w-3 h-3 bg-indigo-200 rounded-sm" /> Facturé
+                <span className="w-3 h-3 bg-green-400 rounded-sm ml-2" /> Encaissé
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start" render={(props) => (
-                <Link href="/quotes/new" {...props}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Créer un nouveau devis
-                </Link>
-              )} />
-              <Button variant="outline" className="w-full justify-start" render={(props) => (
-                <Link href="/clients" {...props}>
-                  <Users className="mr-2 h-4 w-4" />
-                  Gérer les clients
-                </Link>
-              )} />
-              <Button variant="outline" className="w-full justify-start" render={(props) => (
-                <Link href="/products" {...props}>
-                  <Package className="mr-2 h-4 w-4" />
-                  Gérer le catalogue
-                </Link>
-              )} />
-
-              {/* Active quotes requiring attention */}
-              {stats && (stats.statusCounts.draft > 0 || stats.statusCounts.sent > 0) && (
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                    Attention requise
-                  </p>
-                  {stats.statusCounts.draft > 0 && (
-                    <div className="flex items-center justify-between text-sm py-1">
-                      <span className="flex items-center gap-2">
-                        <Badge variant="secondary">Brouillon</Badge>
-                        <span className="text-muted-foreground">à finaliser</span>
-                      </span>
-                      <span className="font-semibold">{stats.statusCounts.draft}</span>
-                    </div>
-                  )}
-                  {stats.statusCounts.sent > 0 && (
-                    <div className="flex items-center justify-between text-sm py-1">
-                      <span className="flex items-center gap-2">
-                        <Badge variant="default">Envoyé</Badge>
-                        <span className="text-muted-foreground">en attente de réponse</span>
-                      </span>
-                      <span className="font-semibold">{stats.statusCounts.sent}</span>
-                    </div>
-                  )}
-                  {stats.statusCounts.viewed > 0 && (
-                    <div className="flex items-center justify-between text-sm py-1">
-                      <span className="flex items-center gap-2">
-                        <Badge variant="outline">Vu</Badge>
-                        <span className="text-muted-foreground">à relancer</span>
-                      </span>
-                      <span className="font-semibold">{stats.statusCounts.viewed}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {isLoading ? (
+              <div className="flex h-[200px] items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <MiniBarChart data={kpis?.monthlyRevenue ?? []} />
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Quick Actions ─────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Actions rapides</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" render={(props) => (
+              <Link href="/quotes/new" {...props}>
+                <FileText className="mr-2 h-4 w-4" />
+                Nouveau devis
+              </Link>
+            )} />
+            <Button variant="outline" render={(props) => (
+              <Link href="/invoices" {...props}>
+                <Receipt className="mr-2 h-4 w-4" />
+                Voir les factures
+              </Link>
+            )} />
+            <Button variant="outline" render={(props) => (
+              <Link href="/clients" {...props}>
+                <Users className="mr-2 h-4 w-4" />
+                Gérer les clients
+              </Link>
+            )} />
+            <Button variant="outline" render={(props) => (
+              <Link href="/products" {...props}>
+                <Package className="mr-2 h-4 w-4" />
+                Gérer le catalogue
+              </Link>
+            )} />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

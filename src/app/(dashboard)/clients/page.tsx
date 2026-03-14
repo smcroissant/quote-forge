@@ -51,6 +51,8 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
+import { CSVExportButton } from "@/components/ui/csv-export-button";
+import { clientsCSVColumns } from "@/lib/csv";
 
 // ── Debounce hook ────────────────────────────────────
 import { useEffect } from "react";
@@ -199,6 +201,20 @@ export default function ClientsPage() {
             className="pl-9"
           />
         </div>
+        <CSVExportButton
+          data={(clients ?? []).map((c) => ({
+            name: c.name,
+            email: c.email ?? "",
+            phone: c.phone ?? "",
+            address: c.address ?? "",
+            city: c.city ?? "",
+            postalCode: c.postalCode ?? "",
+            country: c.country ?? "",
+            createdAt: c.createdAt,
+          }))}
+          columns={clientsCSVColumns}
+          filename={`clients-${new Date().toISOString().split("T")[0]}.csv`}
+        />
       </div>
 
       {/* Table */}

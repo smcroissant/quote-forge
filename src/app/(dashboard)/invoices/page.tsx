@@ -13,6 +13,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Loader2, Plus, FileText, Eye, Receipt, Euro, Clock, AlertTriangle } from "lucide-react";
+import { CSVExportButton } from "@/components/ui/csv-export-button";
+import { invoicesCSVColumns } from "@/lib/csv";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -122,6 +124,22 @@ export default function InvoicesPage() {
             <SelectItem value="cancelled">Annulées</SelectItem>
           </SelectContent>
         </Select>
+        <CSVExportButton
+          data={(invoices ?? []).map((item) => ({
+            invoiceNumber: item.invoice.invoiceNumber,
+            createdAt: item.invoice.createdAt,
+            clientName: item.clientName ?? "",
+            title: item.invoice.title ?? "",
+            status: item.invoice.status,
+            subtotal: item.invoice.subtotal,
+            taxAmount: item.invoice.taxAmount,
+            total: item.invoice.total,
+            dueDate: item.invoice.dueDate,
+            paidAt: item.invoice.paidAt,
+          }))}
+          columns={invoicesCSVColumns}
+          filename={`factures-${new Date().toISOString().split("T")[0]}.csv`}
+        />
       </div>
 
       {/* Table */}
