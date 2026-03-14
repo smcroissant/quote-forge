@@ -9,6 +9,7 @@ import {
   FileText, Users, Package, Euro, TrendingUp, Clock,
   ArrowRight, Loader2, CheckCircle2, XCircle, CircleDot,
   ArrowUpRight, ArrowDownRight, Receipt, Timer, Trophy,
+  Bell, Eye, Mail, Pencil, Trash2,
 } from "lucide-react";
 
 function formatCurrency(value: string | number): string {
@@ -362,6 +363,115 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Recent Activity ──────────────────────────── */}
+      <RecentActivity />
     </div>
+  );
+}
+
+// ── Recent Activity Component ───────────────────────
+function RecentActivity() {
+  const { data: activities, isLoading } = trpc.notifications.getRecentActivity.useQuery({ limit: 10 });
+
+  const actionConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
+    status_changed: { label: "Changement statut", color: "text-indigo-600", icon: CheckCircle2 },
+    created: { label: "Créé", color: "text-blue-600", icon: FileText },
+    updated: { label: "Modifié", color: "text-slate-600", icon: Pencil },
+    viewed: { label: "Consulté", color: "text-purple-600", icon: Eye },
+    email_sent: { label: "Email envoyé", color: "text-green-600", icon: Mail },
+    payment_reminder_sent: { label: "Relance envoyée", color: "text-amber-600", icon: Bell },
+    deleted: { label: "Supprimé", color: "text-red-600", icon: Trash2 },
+  };
+
+  const statusLabels: Record<string, string> = {
+    draft: "Brouillon", sent: "Envoyé", viewed: "Vu",
+    accepted: "Accepté ✅", rejected: "Refusé", expired: "Expiré",
+    invoiced: "Facturé", paid: "Payé", overdue: "En retard",
+  };
+
+  function formatTimeAgo(date: Date | string): string {
+    const now = new Date();
+    const d = new Date(date);
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60_000);
+    const diffHours = Math.floor(diffMs / 3_600_000);
+    const diffDays = Math.floor(diffMs / 86_400_000);
+
+    if (diffMins < 1) return "à l'instant";
+    if (diffMins < 60) return `il y a ${diffMins}min`;
+    if (diffHours < 24) return `il y a ${diffHours}h`;
+    if (diffDays < 7) return `il y a ${diffDays}j`;
+    return d.toLocaleDateString("fr-FR");
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Bell className="h-4 w-4" />
+          Activité récente
+        </CardTitle>
+        <CardDescription>Les 10 dernières actions sur vos devis</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !activities || activities.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Aucune activité récente
+          </p>
+        ) : (
+          <div className="space-y-0">
+            {activities.map((activity, i) => {
+              const config = actionConfig[activity.action] ?? actionConfig.updated;
+              const Icon = config.icon;
+              const isLast = i === activities.length - 1;
+
+              // Build description
+              let description = "";
+              if (activity.action === "status_changed") {
+                const from = statusLabels[activity.fromStatus ?? ""] ?? activity.fromStatus ?? "";
+                const to = statusLabels[activity.toStatus ?? ""] ?? activity.toStatus ?? "";
+                description = `${from} → ${to}`;
+              } else if (activity.action === "created") {
+                description = "Nouveau devis créé";
+              } else if (activity.action === "payment_reminder_sent") {
+                description = `Rappel #${activity.metadata?.reminderNumber ?? "?"}`;
+              } else if (activity.action === "email_sent") {
+                description = "Devis envoyé par email";
+              } else {
+                description = config.label;
+              }
+
+              return (
+                <div key={activity.id} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-full border bg-background ${config.color}`}>
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                    {!isLast && <div className="w-px flex-1 bg-border my-1" />}
+                  </div>
+                  <div className="pb-4 pt-0.5 flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm">
+                        <span className="font-mono text-xs text-muted-foreground">{activity.quoteNumber}</span>
+                        {" — "}
+                        <span className="text-muted-foreground">{description}</span>
+                      </p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {formatTimeAgo(activity.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

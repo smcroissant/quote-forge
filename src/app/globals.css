@@ -127,3 +127,32 @@
     @apply font-sans;
   }
 }
+
+/* ── Smooth transitions ──────────────────────────── */
+@layer utilities {
+  /* Page transitions */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-shadow duration-200 hover:shadow-md;
+  }
+
+  /* Button press effect */
+  .btn-press {
+    @apply transition-all duration-150 active:scale-[0.98];
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

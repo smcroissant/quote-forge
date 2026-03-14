@@ -15,6 +15,7 @@ import {
 import { Loader2, Plus, FileText, Eye, Receipt, Euro, Clock, AlertTriangle } from "lucide-react";
 import { CSVExportButton } from "@/components/ui/csv-export-button";
 import { invoicesCSVColumns } from "@/lib/csv";
+import { TableSkeleton, CardSkeleton } from "@/components/ui/table-skeleton";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -64,6 +65,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats cards */}
+      {!stats && <CardSkeleton />}
       {stats && (
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -144,9 +146,7 @@ export default function InvoicesPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex h-[300px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <TableSkeleton columns={7} />
       ) : !invoices || invoices.length === 0 ? (
         <Card>
           <CardHeader>

@@ -25,6 +25,7 @@ import {
 import { Loader2, Plus, Search, FileText, Eye } from "lucide-react";
 import { CSVExportButton } from "@/components/ui/csv-export-button";
 import { quotesCSVColumns } from "@/lib/csv";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -122,9 +123,7 @@ export default function QuotesPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex h-[300px] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <TableSkeleton columns={7} />
       ) : !quotes || quotes.length === 0 ? (
         <Card>
           <CardHeader>

@@ -8,7 +8,7 @@ export const searchRouter = router({
   global: protectedProcedure
     .input(z.object({ query: z.string().min(1).max(100) }))
     .query(async ({ ctx, input }) => {
-      const orgId = ctx.organizationId;
+      const orgId = ctx.organizationId!;
       const q = input.query.trim();
       const like = `%${q}%`;
 

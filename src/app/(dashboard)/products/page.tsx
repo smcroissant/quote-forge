@@ -61,6 +61,7 @@ import {
 } from "lucide-react";
 import { CSVExportButton } from "@/components/ui/csv-export-button";
 import { productsCSVColumns } from "@/lib/csv";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 // ── Debounce hook ────────────────────────────────────
 function useDebounce<T>(value: T, delay: number): T {
@@ -395,9 +396,7 @@ export default function ProductsPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
+        <TableSkeleton columns={7} />
       ) : !products || products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Package className="size-12 text-muted-foreground/50 mb-4" />

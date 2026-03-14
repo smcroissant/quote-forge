@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CommandPalette } from "@/components/search/command-palette";
+import { NotificationProvider, useNotifications } from "@/components/notifications/notification-provider";
 
 const navItems = [
   {
@@ -75,6 +76,46 @@ const navItems = [
   },
 ];
 
+// ── Nav items with badge support ────────────────────
+function NavItems() {
+  const pathname = usePathname();
+  const { badgeCounts } = useNotifications();
+
+  const badgeMap: Record<string, number> = {
+    "/quotes": badgeCounts.pendingQuotes,
+    "/invoices": badgeCounts.unpaidInvoices,
+  };
+
+  return (
+    <SidebarMenu>
+      {navItems.map((item) => {
+        const isActive =
+          pathname === item.href ||
+          (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        const badge = badgeMap[item.href];
+
+        return (
+          <SidebarMenuItem key={item.href}>
+            <SidebarMenuButton
+              isActive={isActive}
+              tooltip={item.title}
+              render={<Link href={item.href} />}
+            >
+              <item.icon className="size-4" />
+              <span>{item.title}</span>
+              {badge !== undefined && badge > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-500 px-1.5 text-[10px] font-bold text-white">
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
+    </SidebarMenu>
+  );
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -98,6 +139,7 @@ export default function DashboardLayout({
   };
 
   return (
+    <NotificationProvider>
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
@@ -122,26 +164,7 @@ export default function DashboardLayout({
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={isActive}
-                        tooltip={item.title}
-                        render={<Link href={item.href} />}
-                      >
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
+              <NavItems />
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
@@ -228,12 +251,13 @@ export default function DashboardLayout({
         </header>
 
         {/* Main content */}
-        <main className="flex flex-1 flex-col gap-4 p-4">
+        <main className="flex flex-1 flex-col gap-4 p-4 animate-fade-in">
           {children}
         </main>
       </SidebarInset>
 
       {/* Command Palette (global, renders its own trigger) */}
     </SidebarProvider>
+    </NotificationProvider>
   );
 }

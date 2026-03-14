@@ -9,6 +9,7 @@ import { organizationRouter } from "./routers/organization";
 import { paymentRemindersRouter } from "./routers/payment-reminders";
 import { dashboardRouter } from "./routers/dashboard";
 import { searchRouter } from "./routers/search";
+import { notificationsRouter } from "./routers/notifications";
 
 export const appRouter = router({
   products: productsRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   paymentReminders: paymentRemindersRouter,
   dashboard: dashboardRouter,
   search: searchRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { CSVExportButton } from "@/components/ui/csv-export-button";
 import { clientsCSVColumns } from "@/lib/csv";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 // ── Debounce hook ────────────────────────────────────
 import { useEffect } from "react";
@@ -219,9 +220,7 @@ export default function ClientsPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        </div>
+        <TableSkeleton columns={5} />
       ) : !clients || clients.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <Users className="size-12 text-muted-foreground/50 mb-4" />
