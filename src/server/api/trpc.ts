@@ -1,32 +1,40 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import type { createContext } from "./context";
+import type { Context } from "./context";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
-const t = initTRPC.context<typeof createContext>().create({
+const t = initTRPC.context<Context>().create({
   transformer: superjson,
 });
 
+// Helper to get org ID with type narrowing
+export function requireOrgId(ctx: Context): string {
+  if (!ctx.organizationId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "No organization selected" });
+  }
+  return ctx.organizationId;
+}
+
 // ── Auth middleware ──────────────────────────────────
 const isAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx.session || !ctx.organizationId) {
+  if (!ctx.session) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  if (!ctx.organizationId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "No organization selected" });
   }
   return next({
     ctx: {
       ...ctx,
       session: ctx.session,
       organizationId: ctx.organizationId,
-    },
+    } as Context & { session: NonNullable<Context["session"]>; organizationId: string },
   });
 });
 
 // ── Rate limit middleware ────────────────────────────
 const withRateLimit = t.middleware(({ ctx, next }) => {
-  const ip =
-    ctx.session?.session?.ipAddress ??
-    "anonymous";
-
+  const ip = ctx.session?.session?.ipAddress ?? "anonymous";
   const result = rateLimit(`api:${ip}`, RATE_LIMITS.api);
 
   if (!result.success) {
@@ -45,11 +53,9 @@ const sanitizeErrors = t.middleware(async ({ next }) => {
     return await next();
   } catch (error) {
     if (error instanceof TRPCError) {
-      // Re-throw tRPC errors as-is (they're already user-friendly)
       throw error;
     }
 
-    // In production, hide internal errors
     if (process.env.NODE_ENV === "production") {
       console.error("[Internal Error]", error);
       throw new TRPCError({
@@ -58,7 +64,6 @@ const sanitizeErrors = t.middleware(async ({ next }) => {
       });
     }
 
-    // In dev, show the real error
     throw error;
   }
 });

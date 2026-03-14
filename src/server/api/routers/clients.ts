@@ -14,7 +14,7 @@ export const clientsRouter = router({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(clients.organizationId, ctx.organizationId)];
+      const conditions = [eq(clients.organizationId, ctx.organizationId!)];
 
       if (input?.search) {
         conditions.push(
@@ -44,7 +44,7 @@ export const clientsRouter = router({
         .where(
           and(
             eq(clients.id, input.id),
-            eq(clients.organizationId, ctx.organizationId)
+            eq(clients.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -74,7 +74,7 @@ export const clientsRouter = router({
       const [client] = await ctx.db
         .insert(clients)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           name: input.name,
           email: input.email ?? null,
           phone: input.phone ?? null,
@@ -113,7 +113,7 @@ export const clientsRouter = router({
         .where(
           and(
             eq(clients.id, id),
-            eq(clients.organizationId, ctx.organizationId)
+            eq(clients.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -144,7 +144,7 @@ export const clientsRouter = router({
         .where(
           and(
             eq(clients.id, input.id),
-            eq(clients.organizationId, ctx.organizationId)
+            eq(clients.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -156,7 +156,7 @@ export const clientsRouter = router({
       const [duplicate] = await ctx.db
         .insert(clients)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           name: `${original.name} (copie)`,
           email: original.email,
           phone: original.phone,
@@ -181,7 +181,7 @@ export const clientsRouter = router({
         .where(
           and(
             eq(clients.id, input.id),
-            eq(clients.organizationId, ctx.organizationId)
+            eq(clients.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);

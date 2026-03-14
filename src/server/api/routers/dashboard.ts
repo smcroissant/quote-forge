@@ -5,7 +5,7 @@ import { quotes, invoices, clients } from "@/db/schema";
 export const dashboardRouter = router({
   // ── Get all KPIs for dashboard ────────────────────
   getKPIs: protectedProcedure.query(async ({ ctx }) => {
-    const orgId = ctx.organizationId;
+    const orgId = ctx.organizationId!;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);

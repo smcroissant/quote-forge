@@ -8,7 +8,7 @@ export async function createContext() {
     headers: headersList,
   });
 
-  // Extract organizationId from session (set during login/org selection)
+  // OrganizationId may be null for unauthenticated users or users without an active org
   const organizationId = session?.session?.activeOrganizationId ?? null;
 
   return {
@@ -19,3 +19,8 @@ export async function createContext() {
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
+
+// Helper type for protected procedures where org is guaranteed
+export type ProtectedContext = Omit<Context, "organizationId"> & {
+  organizationId: string;
+};

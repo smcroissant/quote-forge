@@ -113,7 +113,7 @@ export const invoicesRouter = router({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(invoices.organizationId, ctx.organizationId)];
+      const conditions = [eq(invoices.organizationId, ctx.organizationId!)];
 
       if (input?.status) {
         conditions.push(eq(invoices.status, input.status));
@@ -146,7 +146,7 @@ export const invoicesRouter = router({
         .where(
           and(
             eq(invoices.id, input.id),
-            eq(invoices.organizationId, ctx.organizationId)
+            eq(invoices.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -180,7 +180,7 @@ export const invoicesRouter = router({
         .where(
           and(
             eq(invoices.id, input.id),
-            eq(invoices.organizationId, ctx.organizationId)
+            eq(invoices.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -207,7 +207,7 @@ export const invoicesRouter = router({
         .where(
           and(
             eq(quotes.id, input.quoteId),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -245,7 +245,7 @@ export const invoicesRouter = router({
         .orderBy(quoteLines.sortOrder);
 
       // Generate invoice number
-      const invoiceNumber = await generateInvoiceNumber(ctx.db, ctx.organizationId);
+      const invoiceNumber = await generateInvoiceNumber(ctx.db, ctx.organizationId!);
 
       // Default due date: 30 days
       const dueDate = new Date();
@@ -255,7 +255,7 @@ export const invoicesRouter = router({
       const [invoice] = await ctx.db
         .insert(invoices)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           clientId: quote.clientId,
           quoteId: quote.id,
           invoiceNumber,
@@ -306,7 +306,7 @@ export const invoicesRouter = router({
         .where(
           and(
             eq(clients.id, input.clientId),
-            eq(clients.organizationId, ctx.organizationId)
+            eq(clients.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -316,12 +316,12 @@ export const invoicesRouter = router({
       }
 
       const totals = computeTotals(input.lines);
-      const invoiceNumber = await generateInvoiceNumber(ctx.db, ctx.organizationId);
+      const invoiceNumber = await generateInvoiceNumber(ctx.db, ctx.organizationId!);
 
       const [invoice] = await ctx.db
         .insert(invoices)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           clientId: input.clientId,
           quoteId: input.quoteId ?? null,
           invoiceNumber,
@@ -361,7 +361,7 @@ export const invoicesRouter = router({
         .where(
           and(
             eq(invoices.id, input.id),
-            eq(invoices.organizationId, ctx.organizationId)
+            eq(invoices.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -414,7 +414,7 @@ export const invoicesRouter = router({
         .where(
           and(
             eq(invoices.id, input.id),
-            eq(invoices.organizationId, ctx.organizationId)
+            eq(invoices.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -441,7 +441,7 @@ export const invoicesRouter = router({
       const allInvoices = await ctx.db
         .select({ status: invoices.status, total: invoices.total })
         .from(invoices)
-        .where(eq(invoices.organizationId, ctx.organizationId));
+        .where(eq(invoices.organizationId, ctx.organizationId!));
 
       const statusCounts: Record<string, number> = {
         draft: 0,

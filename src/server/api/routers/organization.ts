@@ -10,7 +10,7 @@ export const organizationRouter = router({
     const [org] = await ctx.db
       .select()
       .from(organizations)
-      .where(eq(organizations.id, ctx.organizationId))
+      .where(eq(organizations.id, ctx.organizationId!))
       .limit(1);
 
     if (!org) {
@@ -38,7 +38,7 @@ export const organizationRouter = router({
       const [updated] = await ctx.db
         .update(organizations)
         .set({ ...input, updatedAt: new Date() })
-        .where(eq(organizations.id, ctx.organizationId))
+        .where(eq(organizations.id, ctx.organizationId!))
         .returning();
 
       return updated;
@@ -59,7 +59,7 @@ export const organizationRouter = router({
       const [updated] = await ctx.db
         .update(organizations)
         .set({ ...input, updatedAt: new Date() })
-        .where(eq(organizations.id, ctx.organizationId))
+        .where(eq(organizations.id, ctx.organizationId!))
         .returning();
 
       return updated;
@@ -78,7 +78,7 @@ export const organizationRouter = router({
       const [updated] = await ctx.db
         .update(organizations)
         .set({ ...input, updatedAt: new Date() })
-        .where(eq(organizations.id, ctx.organizationId))
+        .where(eq(organizations.id, ctx.organizationId!))
         .returning();
 
       return updated;
@@ -91,7 +91,7 @@ export const organizationRouter = router({
       const [updated] = await ctx.db
         .update(organizations)
         .set({ logo: input.logo, updatedAt: new Date() })
-        .where(eq(organizations.id, ctx.organizationId))
+        .where(eq(organizations.id, ctx.organizationId!))
         .returning();
 
       return updated;

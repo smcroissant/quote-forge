@@ -141,7 +141,7 @@ export const quotesRouter = router({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(quotes.organizationId, ctx.organizationId)];
+      const conditions = [eq(quotes.organizationId, ctx.organizationId!)];
 
       if (input?.status) {
         conditions.push(eq(quotes.status, input.status));
@@ -174,7 +174,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, input.id),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -216,7 +216,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, input.quoteId),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -250,7 +250,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(clients.id, input.clientId),
-            eq(clients.organizationId, ctx.organizationId)
+            eq(clients.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -260,13 +260,13 @@ export const quotesRouter = router({
       }
 
       const totals = computeTotals(input.lines);
-      const quoteNumber = await generateQuoteNumber(ctx.db, ctx.organizationId);
+      const quoteNumber = await generateQuoteNumber(ctx.db, ctx.organizationId!);
       const viewToken = randomBytes(32).toString("hex");
 
       const [quote] = await ctx.db
         .insert(quotes)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           clientId: input.clientId,
           quoteNumber,
           viewToken,
@@ -298,7 +298,7 @@ export const quotesRouter = router({
       // Log creation activity
       await logActivity(ctx.db, {
         quoteId: quote.id,
-        userId: ctx.session.session.userId,
+        userId: ctx.session!.session.userId,
         action: "created",
         toStatus: "draft",
       });
@@ -319,7 +319,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, id),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -379,7 +379,7 @@ export const quotesRouter = router({
       // Log update activity
       await logActivity(ctx.db, {
         quoteId: id,
-        userId: ctx.session.session.userId,
+        userId: ctx.session!.session.userId,
         action: "updated",
         metadata: {
           fields: Object.keys(updateData),
@@ -400,7 +400,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, input.id),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -444,7 +444,7 @@ export const quotesRouter = router({
       // ── Log status change activity ──
       await logActivity(ctx.db, {
         quoteId: input.id,
-        userId: ctx.session.session.userId,
+        userId: ctx.session!.session.userId,
         action: "status_changed",
         fromStatus: existing.status,
         toStatus: input.status,
@@ -463,7 +463,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, input.id),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -485,7 +485,7 @@ export const quotesRouter = router({
       const allQuotes = await ctx.db
         .select({ status: quotes.status, total: quotes.total })
         .from(quotes)
-        .where(eq(quotes.organizationId, ctx.organizationId));
+        .where(eq(quotes.organizationId, ctx.organizationId!));
 
       const statusCounts: Record<string, number> = {
         draft: 0,
@@ -537,7 +537,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, input.id),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -556,7 +556,7 @@ export const quotesRouter = router({
       // Log before deleting
       await logActivity(ctx.db, {
         quoteId: input.id,
-        userId: ctx.session.session.userId,
+        userId: ctx.session!.session.userId,
         action: "deleted",
         fromStatus: existing.status,
         metadata: { quoteNumber: existing.quoteNumber },
@@ -584,7 +584,7 @@ export const quotesRouter = router({
         .where(
           and(
             eq(quotes.id, input.id),
-            eq(quotes.organizationId, ctx.organizationId)
+            eq(quotes.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -623,7 +623,7 @@ export const quotesRouter = router({
       const [org] = await ctx.db
         .select()
         .from(organizations)
-        .where(eq(organizations.id, ctx.organizationId))
+        .where(eq(organizations.id, ctx.organizationId!))
         .limit(1);
 
       // 4. Fetch quote lines
@@ -708,7 +708,7 @@ export const quotesRouter = router({
       // 9. Log activity
       await logActivity(ctx.db, {
         quoteId: quote.id,
-        userId: ctx.session.session.userId,
+        userId: ctx.session!.session.userId,
         action: "email_sent",
         fromStatus: quote.status,
         toStatus: quote.status === "draft" ? "sent" : quote.status,

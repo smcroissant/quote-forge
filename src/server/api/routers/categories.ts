@@ -7,10 +7,11 @@ import { productCategories, products } from "@/db/schema";
 export const categoriesRouter = router({
   // ── List all categories ────────────────────────────
   getAll: protectedProcedure.query(async ({ ctx }) => {
+    const orgId = ctx.organizationId as string;
     return ctx.db
       .select()
       .from(productCategories)
-      .where(eq(productCategories.organizationId, ctx.organizationId))
+      .where(eq(productCategories.organizationId, orgId))
       .orderBy(asc(productCategories.sortOrder), asc(productCategories.name));
   }),
 
@@ -22,10 +23,11 @@ export const categoriesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.organizationId as string;
       const [category] = await ctx.db
         .insert(productCategories)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: orgId,
           name: input.name,
         })
         .returning();
@@ -42,13 +44,14 @@ export const categoriesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.organizationId as string;
       const [existing] = await ctx.db
         .select({ id: productCategories.id })
         .from(productCategories)
         .where(
           and(
             eq(productCategories.id, input.id),
-            eq(productCategories.organizationId, ctx.organizationId)
+            eq(productCategories.organizationId, orgId)
           )
         )
         .limit(1);
@@ -70,13 +73,14 @@ export const categoriesRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.organizationId as string;
       const [existing] = await ctx.db
         .select({ id: productCategories.id })
         .from(productCategories)
         .where(
           and(
             eq(productCategories.id, input.id),
-            eq(productCategories.organizationId, ctx.organizationId)
+            eq(productCategories.organizationId, orgId)
           )
         )
         .limit(1);
@@ -107,6 +111,7 @@ export const categoriesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.organizationId as string;
       // Update sort_order for each category
       await Promise.all(
         input.orderedIds.map((id, index) =>
@@ -116,7 +121,7 @@ export const categoriesRouter = router({
             .where(
               and(
                 eq(productCategories.id, id),
-                eq(productCategories.organizationId, ctx.organizationId)
+                eq(productCategories.organizationId, orgId)
               )
             )
         )

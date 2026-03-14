@@ -15,7 +15,7 @@ export const productsRouter = router({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(products.organizationId, ctx.organizationId)];
+      const conditions = [eq(products.organizationId, ctx.organizationId!)];
 
       if (!input?.includeInactive) {
         conditions.push(eq(products.isActive, true));
@@ -55,7 +55,7 @@ export const productsRouter = router({
         .where(
           and(
             eq(products.id, input.id),
-            eq(products.organizationId, ctx.organizationId)
+            eq(products.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -83,7 +83,7 @@ export const productsRouter = router({
       const [product] = await ctx.db
         .insert(products)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           name: input.name,
           description: input.description ?? null,
           unitPrice: input.unitPrice,
@@ -121,7 +121,7 @@ export const productsRouter = router({
         .where(
           and(
             eq(products.id, id),
-            eq(products.organizationId, ctx.organizationId)
+            eq(products.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -152,7 +152,7 @@ export const productsRouter = router({
         .where(
           and(
             eq(products.id, input.id),
-            eq(products.organizationId, ctx.organizationId)
+            eq(products.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -164,7 +164,7 @@ export const productsRouter = router({
       const [duplicate] = await ctx.db
         .insert(products)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           categoryId: original.categoryId,
           name: `${original.name} (copie)`,
           description: original.description,
@@ -188,7 +188,7 @@ export const productsRouter = router({
         .where(
           and(
             eq(products.id, input.id),
-            eq(products.organizationId, ctx.organizationId)
+            eq(products.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -219,7 +219,7 @@ export const productsRouter = router({
         .where(
           and(
             eq(products.id, input.id),
-            eq(products.organizationId, ctx.organizationId)
+            eq(products.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);

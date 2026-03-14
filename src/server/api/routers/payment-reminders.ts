@@ -15,7 +15,7 @@ export const paymentRemindersRouter = router({
         reminderDay3: organizations.reminderDay3,
       })
       .from(organizations)
-      .where(eq(organizations.id, ctx.organizationId))
+      .where(eq(organizations.id, ctx.organizationId!))
       .limit(1);
 
     if (!org) {
@@ -51,7 +51,7 @@ export const paymentRemindersRouter = router({
       const [updated] = await ctx.db
         .update(organizations)
         .set(updateData)
-        .where(eq(organizations.id, ctx.organizationId))
+        .where(eq(organizations.id, ctx.organizationId!))
         .returning();
 
       return {
@@ -73,7 +73,7 @@ export const paymentRemindersRouter = router({
         .where(
           and(
             eq(invoices.id, input.invoiceId),
-            eq(invoices.organizationId, ctx.organizationId)
+            eq(invoices.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -98,7 +98,7 @@ export const paymentRemindersRouter = router({
       }).optional()
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(paymentReminders.organizationId, ctx.organizationId)];
+      const conditions = [eq(paymentReminders.organizationId, ctx.organizationId!)];
 
       if (input?.status) {
         conditions.push(eq(paymentReminders.status, input.status));

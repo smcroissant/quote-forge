@@ -40,7 +40,7 @@ export const quoteTemplatesRouter = router({
       .where(
         or(
           isNull(quoteTemplates.organizationId),
-          eq(quoteTemplates.organizationId, ctx.organizationId)
+          eq(quoteTemplates.organizationId, ctx.organizationId!)
         )
       )
       .orderBy(asc(quoteTemplates.sortOrder), asc(quoteTemplates.name));
@@ -60,7 +60,7 @@ export const quoteTemplatesRouter = router({
             eq(quoteTemplates.id, input.id),
             or(
               isNull(quoteTemplates.organizationId),
-              eq(quoteTemplates.organizationId, ctx.organizationId)
+              eq(quoteTemplates.organizationId, ctx.organizationId!)
             )
           )
         )
@@ -81,7 +81,7 @@ export const quoteTemplatesRouter = router({
         .insert(quoteTemplates)
         .values({
           ...input,
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
         })
         .returning();
 
@@ -101,7 +101,7 @@ export const quoteTemplatesRouter = router({
         .where(
           and(
             eq(quoteTemplates.id, id),
-            eq(quoteTemplates.organizationId, ctx.organizationId)
+            eq(quoteTemplates.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -132,7 +132,7 @@ export const quoteTemplatesRouter = router({
         .where(
           and(
             eq(quoteTemplates.id, input.id),
-            eq(quoteTemplates.organizationId, ctx.organizationId)
+            eq(quoteTemplates.organizationId, ctx.organizationId!)
           )
         )
         .limit(1);
@@ -161,7 +161,7 @@ export const quoteTemplatesRouter = router({
             eq(quoteTemplates.id, input.id),
             or(
               isNull(quoteTemplates.organizationId),
-              eq(quoteTemplates.organizationId, ctx.organizationId)
+              eq(quoteTemplates.organizationId, ctx.organizationId!)
             )
           )
         )
@@ -181,7 +181,7 @@ export const quoteTemplatesRouter = router({
       const [duplicate] = await ctx.db
         .insert(quoteTemplates)
         .values({
-          organizationId: ctx.organizationId,
+          organizationId: ctx.organizationId!,
           name: input.name,
           slug,
           description: source.description,
