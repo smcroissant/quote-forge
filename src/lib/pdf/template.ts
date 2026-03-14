@@ -113,15 +113,18 @@ function buildLinesHTML(
 ): string {
   return lines
     .map(
-      (line, i) => `
-    <tr>
+      (line, i) => {
+        const zebraBg = i % 2 === 1 ? " background: #fafafa;" : "";
+        return `
+    <tr style="${zebraBg}">
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: #555;">${i + 1}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0;">${escapeHtml(line.description)}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${escapeHtml(line.quantity)}</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${formatCurrency(line.unitPrice)} €</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right;">${escapeHtml(line.taxRate)}%</td>
       <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: right; font-weight: 600;">${formatCurrency(line.lineTotal)} €</td>
-    </tr>`
+    </tr>`;
+      }
     )
     .join("");
 }
@@ -165,6 +168,26 @@ function buildTermsHTML(
   </div>`;
 }
 
+function buildSignatureHTML(): string {
+  return `
+  <div class="signature-section no-break">
+    <table class="signature-table">
+      <tr>
+        <td>
+          <div class="signature-label">Bon pour accord — Signature du client</div>
+          <div class="signature-box"></div>
+          <div class="signature-date">Date : ____________________</div>
+        </td>
+        <td>
+          <div class="signature-label">Fait à __________, le __________</div>
+          <div class="signature-box"></div>
+          <div class="signature-date">Signature + cachet de l'entreprise</div>
+        </td>
+      </tr>
+    </table>
+  </div>`;
+}
+
 // ── Classic Layout ──────────────────────────────────
 // Professional, clean, black & white with status badges
 
@@ -186,6 +209,19 @@ function renderClassicLayout(data: QuotePDFData): string {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
       color: #1a1a1a; background: #fff; line-height: 1.5;
       padding: 40px; font-size: 13px;
+    }
+    /* ── Print CSS ────────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 30px;
+    }
+    @media print {
+      body { padding: 0; }
+      .page-break-before { page-break-before: always; }
+      .no-break { page-break-inside: avoid; }
+      table { page-break-inside: auto; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
     }
     .header {
       display: flex; justify-content: space-between; align-items: flex-start;
@@ -234,12 +270,19 @@ function renderClassicLayout(data: QuotePDFData): string {
     .terms { padding: 16px 20px; border: 1px solid #e5e5e5; border-radius: 8px; margin-bottom: 40px; }
     .terms-label { font-weight: 600; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; }
     .terms-text { color: #555; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+    .signature-section { margin: 40px 0; }
+    .signature-table { width: 100%; border-collapse: collapse; }
+    .signature-table td { width: 50%; padding: 0 20px; vertical-align: bottom; }
+    .signature-label { font-size: 11px; color: #999; margin-bottom: 40px; }
+    .signature-box { height: 60px; border-bottom: 1px solid #ccc; margin-bottom: 8px; }
+    .signature-date { font-size: 11px; color: #999; }
     .footer { text-align: center; color: #999; font-size: 11px; padding-top: 20px; border-top: 1px solid #e5e5e5; }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
+      ${t?.showLogo !== false && data.organization.logo ? `<img src="${escapeHtml(data.organization.logo)}" alt="Logo" style="max-height: 50px; max-width: 180px; object-fit: contain; margin-bottom: 8px; display: block;" />` : ""}
       <div class="company-name">${escapeHtml(data.organization.name)}</div>
       <div class="company-info">
         ${buildOrgAddress(data.organization) ? buildOrgAddress(data.organization) + "<br>" : ""}
@@ -294,6 +337,7 @@ function renderClassicLayout(data: QuotePDFData): string {
 
   ${buildNotesHTML(data, showNotes)}
   ${buildTermsHTML(showTerms, termsText)}
+  ${buildSignatureHTML()}
 
   <div class="footer">
     ${escapeHtml(data.organization.name)} — Document généré par QuoteForge
@@ -323,6 +367,15 @@ function renderModernLayout(data: QuotePDFData): string {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
       color: #334155; background: #fff; line-height: 1.6; font-size: 13px;
+    }
+    /* ── Print CSS ────────────────────────────────── */
+    @page { size: A4; margin: 30px; }
+    @media print {
+      body { padding: 0; }
+      .no-break { page-break-inside: avoid; }
+      table { page-break-inside: auto; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
     }
     .header {
       background: ${primary}; color: white; padding: 40px;
@@ -378,12 +431,19 @@ function renderModernLayout(data: QuotePDFData): string {
     .terms { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 30px; }
     .terms-label { font-weight: 700; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
     .terms-text { color: #475569; font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+    .signature-section { margin: 40px 0; }
+    .signature-table { width: 100%; border-collapse: collapse; }
+    .signature-table td { width: 50%; padding: 0 20px; vertical-align: bottom; }
+    .signature-label { font-size: 11px; color: #94a3b8; margin-bottom: 40px; }
+    .signature-box { height: 60px; border-bottom: 1px solid #cbd5e1; margin-bottom: 8px; }
+    .signature-date { font-size: 11px; color: #94a3b8; }
     .footer { text-align: center; color: #94a3b8; font-size: 11px; padding: 20px 40px; border-top: 1px solid #e2e8f0; }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="header-company">
+      ${t?.showLogo !== false && data.organization.logo ? `<img src="${escapeHtml(data.organization.logo)}" alt="Logo" style="max-height: 50px; max-width: 180px; object-fit: contain; margin-bottom: 8px; display: block;" />` : ""}
       <div class="company-name">${escapeHtml(data.organization.name)}</div>
       <div class="company-info">
         ${buildOrgAddress(data.organization) ? buildOrgAddress(data.organization) + "<br>" : ""}
@@ -441,6 +501,7 @@ function renderModernLayout(data: QuotePDFData): string {
 
     ${buildNotesHTML(data, showNotes)}
     ${buildTermsHTML(showTerms, termsText)}
+    ${buildSignatureHTML()}
   </div>
 
   <div class="footer">
@@ -470,6 +531,15 @@ function renderMinimalLayout(data: QuotePDFData): string {
       font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
       color: #333; background: #fff; line-height: 1.7;
       padding: 60px; font-size: 14px;
+    }
+    /* ── Print CSS ────────────────────────────────── */
+    @page { size: A4; margin: 30px; }
+    @media print {
+      body { padding: 0; }
+      .no-break { page-break-inside: avoid; }
+      table { page-break-inside: auto; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
     }
     .header { margin-bottom: 60px; }
     .company-name { font-size: 16px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 30px; }
@@ -507,11 +577,18 @@ function renderMinimalLayout(data: QuotePDFData): string {
     .terms { margin-bottom: 40px; padding-top: 20px; border-top: 1px solid #eee; }
     .terms-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #bbb; margin-bottom: 8px; }
     .terms-text { color: #888; font-size: 12px; line-height: 1.8; white-space: pre-wrap; }
+    .signature-section { margin: 50px 0; }
+    .signature-table { width: 100%; border-collapse: collapse; }
+    .signature-table td { width: 50%; padding: 0 20px; vertical-align: bottom; }
+    .signature-label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #bbb; margin-bottom: 40px; }
+    .signature-box { height: 50px; border-bottom: 1px solid #ddd; margin-bottom: 8px; }
+    .signature-date { font-size: 10px; color: #bbb; }
     .footer { text-align: center; color: #ccc; font-size: 11px; letter-spacing: 1px; padding-top: 30px; border-top: 1px solid #f0f0f0; }
   </style>
 </head>
 <body>
   <div class="header">
+    ${t?.showLogo !== false && data.organization.logo ? `<img src="${escapeHtml(data.organization.logo)}" alt="Logo" style="max-height: 40px; max-width: 150px; object-fit: contain; margin-bottom: 12px; display: block;" />` : ""}
     <div class="company-name">${escapeHtml(data.organization.name)}</div>
     <div class="quote-meta">
       <div class="quote-number">${escapeHtml(data.quoteNumber)}</div>
@@ -589,6 +666,8 @@ function renderMinimalLayout(data: QuotePDFData): string {
     <div class="terms-label">Conditions</div>
     <div class="terms-text">${termsText}</div>
   </div>` : ""}
+
+  ${buildSignatureHTML()}
 
   <div class="footer">
     ${escapeHtml(data.organization.name)}

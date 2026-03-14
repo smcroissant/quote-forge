@@ -64,11 +64,24 @@ export async function generateQuotePDF(data: QuoteData): Promise<Buffer> {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
+    // ── Page numbering script ──────────────────────
+    await page.evaluate(() => {
+      // This runs in the browser context to prepare display
+      // Actual page numbers come from Puppeteer headerFooter
+    });
+
     const pdf = await page.pdf({
       format: "A4",
-      margin: { top: "20px", right: "20px", bottom: "20px", left: "20px" },
+      margin: { top: "30px", right: "30px", bottom: "40px", left: "30px" },
       printBackground: true,
       preferCSSPageSize: false,
+      displayHeaderFooter: true,
+      headerTemplate: `<span></span>`,
+      footerTemplate: `
+        <div style="width: 100%; text-align: center; font-size: 9px; color: #999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0 40px;">
+          <span>Page <span class="pageNumber"></span> sur <span class="totalPages"></span></span>
+        </div>
+      `,
     });
 
     return Buffer.from(pdf);

@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { Context } from "./context";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
@@ -48,16 +49,31 @@ const withRateLimit = t.middleware(({ ctx, next }) => {
 });
 
 // ── Production error sanitizer ──────────────────────
-const sanitizeErrors = t.middleware(async ({ next }) => {
+const sanitizeErrors = t.middleware(async ({ path, type, ctx, next }) => {
   try {
     return await next();
   } catch (error) {
+    const userId = ctx.session?.session?.userId ?? "anonymous";
+    const orgId = ctx.organizationId ?? "none";
+
     if (error instanceof TRPCError) {
+      logger.warn(`tRPC error: ${error.code}`, {
+        path,
+        type,
+        code: error.code,
+        userId,
+        orgId,
+      });
       throw error;
     }
 
+    logger.error(
+      `Unhandled error in ${type} ${path}`,
+      error instanceof Error ? error : new Error(String(error)),
+      { userId, orgId }
+    );
+
     if (process.env.NODE_ENV === "production") {
-      console.error("[Internal Error]", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Une erreur est survenue. Veuillez réessayer.",
