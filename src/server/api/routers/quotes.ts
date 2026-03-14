@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { router, protectedProcedure } from "../trpc";
-import { quotes, quoteLines, clients, products, quoteActivities, organizations, quoteTemplates, invoices } from "@/db/schema";
+import { quotes, quoteLines, clients, products, quoteActivities, organizations, quoteTemplates, invoices, users } from "@/db/schema";
 import { generateQuotePDF } from "@/lib/pdf/generator";
 import { sendQuoteEmail } from "@/lib/email/sender";
 
@@ -229,7 +229,7 @@ export const quotesRouter = router({
         .select({
           activity: quoteActivities,
           userName: sql<string | null>`(
-            SELECT name FROM ${clients} WHERE id = ${quoteActivities.userId}
+            SELECT name FROM ${users} WHERE id = ${quoteActivities.userId}
           )`,
         })
         .from(quoteActivities)

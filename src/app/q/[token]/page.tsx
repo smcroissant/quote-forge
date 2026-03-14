@@ -63,9 +63,11 @@ function formatDate(dateStr: string | null): string {
 const statusLabels: Record<string, string> = {
   draft: "Brouillon",
   sent: "Envoyé",
+  viewed: "Vu",
   accepted: "Accepté",
   rejected: "Refusé",
   expired: "Expiré",
+  invoiced: "Facturé",
 };
 
 export default function PublicQuotePage() {

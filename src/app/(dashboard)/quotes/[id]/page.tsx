@@ -348,15 +348,6 @@ export default function QuoteDetailPage() {
             <Download className="mr-2 h-4 w-4" />
             PDF
           </Button>
-          <SendEmailModal
-            quoteId={quote.id}
-            quoteNumber={quote.quoteNumber}
-            clientEmail={quote.client?.email}
-            clientName={quote.client?.name ?? "Client"}
-            total={quote.total}
-            onSuccess={() => refetch()}
-            isDisabled={isTerminal}
-          />
           {quote.status === "draft" && (
             <SendEmailModal
               quoteId={quote.id}
