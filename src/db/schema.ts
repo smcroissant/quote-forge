@@ -35,6 +35,10 @@ export const organizations = pgTable("organizations", {
   reminderDay2: integer("reminder_day_2").default(14), // J+14
   reminderDay3: integer("reminder_day_3").default(30), // J+30
   reminderEmailSubject: text("reminder_email_subject"), // custom subject prefix
+  // Branding / customization
+  primaryColor: text("primary_color").default("#4f46e5"), // indigo-600
+  fontFamily: text("font_family").default("inter"), // inter, georgia, arial
+  customFooter: text("custom_footer"), // text shown at bottom of quotes
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
