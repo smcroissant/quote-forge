@@ -351,6 +351,29 @@ export const paymentReminders = pgTable("payment_reminders", {
   scheduledIdx: index("payment_reminders_scheduled_idx").on(table.scheduledAt),
 }));
 
+// ── Organization Invitations ─────────────────────────
+export const organizationInvitations = pgTable("organization_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("member"), // owner, admin, member
+  token: text("token").notNull().unique(),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected, expired, cancelled
+  invitedBy: text("invited_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  orgIdx: index("invitations_org_idx").on(table.organizationId),
+  emailIdx: index("invitations_email_idx").on(table.email),
+  tokenIdx: index("invitations_token_idx").on(table.token),
+  statusIdx: index("invitations_status_idx").on(table.status),
+}));
+
 // ── Link quotes to invoice ───────────────────────────
 export const quotesRelations = relations(quotes, ({ one }) => ({
   invoice: one(invoices, {
@@ -394,3 +417,5 @@ export type InvoiceLine = typeof invoiceLines.$inferSelect;
 export type NewInvoiceLine = typeof invoiceLines.$inferInsert;
 export type PaymentReminder = typeof paymentReminders.$inferSelect;
 export type NewPaymentReminder = typeof paymentReminders.$inferInsert;
+export type OrganizationInvitation = typeof organizationInvitations.$inferSelect;
+export type NewOrganizationInvitation = typeof organizationInvitations.$inferInsert;
