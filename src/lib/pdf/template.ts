@@ -371,6 +371,7 @@ function renderModernLayout(data: QuotePDFData): string {
   const t = data.template;
   const primary = t?.primaryColor ?? "#0f172a";
   const accent = t?.accentColor ?? "#3b82f6";
+  const font = resolveFont(t?.fontFamily);
   const showNotes = t?.showNotes ?? true;
   const showTerms = t?.showTerms ?? false;
   const termsText = t?.termsText ?? null;
@@ -387,7 +388,9 @@ function renderModernLayout(data: QuotePDFData): string {
       color: #334155; background: #fff; line-height: 1.6; font-size: 13px;
     }
     /* ── Print CSS ────────────────────────────────── */
-    @page { size: A4; margin: 30px; }
+    @page { size: A4; margin: 30px;
+      @bottom-center { content: "Page " counter(page) " / " counter(pages); font-size: 9px; color: #999; }
+    }
     @media print {
       body { padding: 0; }
       .no-break { page-break-inside: avoid; }
@@ -534,6 +537,7 @@ function renderModernLayout(data: QuotePDFData): string {
 
 function renderMinimalLayout(data: QuotePDFData): string {
   const t = data.template;
+  const font = resolveFont(t?.fontFamily);
   const showNotes = t?.showNotes ?? true;
   const showTerms = t?.showTerms ?? false;
   const termsText = t?.termsText ?? null;
@@ -546,12 +550,14 @@ function renderMinimalLayout(data: QuotePDFData): string {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-family: ${font};
       color: #333; background: #fff; line-height: 1.7;
       padding: 60px; font-size: 14px;
     }
     /* ── Print CSS ────────────────────────────────── */
-    @page { size: A4; margin: 30px; }
+    @page { size: A4; margin: 30px;
+      @bottom-center { content: "Page " counter(page) " / " counter(pages); font-size: 9px; color: #999; }
+    }
     @media print {
       body { padding: 0; }
       .no-break { page-break-inside: avoid; }
