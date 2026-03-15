@@ -154,6 +154,14 @@ export default function QuotesPage() {
               const status = statusConfig[item.quote.status] ?? statusConfig.draft;
               return <Badge variant={status.variant}>{status.label}</Badge>;
             }},
+            { key: "views", header: "Vues", render: (item) => {
+              const count = item.quote.viewCount ?? 0;
+              return count > 0 ? (
+                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Eye className="h-3 w-3" /> {count}
+                </span>
+              ) : <span className="text-sm text-muted-foreground">—</span>;
+            }},
             { key: "total", header: "Total TTC", className: "text-right", render: (item) => <span className="font-medium">{formatCurrency(item.quote.total)} €</span> },
             { key: "date", header: "Date", className: "text-muted-foreground text-sm", render: (item) => formatDate(item.quote.createdAt) },
           ]}
