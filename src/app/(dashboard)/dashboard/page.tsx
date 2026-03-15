@@ -11,6 +11,7 @@ import {
   ArrowUpRight, ArrowDownRight, Receipt, Timer, Trophy,
   Bell, Eye, Mail, Pencil, Trash2,
 } from "lucide-react";
+import { FirstSteps } from "@/components/dashboard/first-steps";
 
 function formatCurrency(value: string | number): string {
   return parseFloat(String(value)).toLocaleString("fr-FR", {
@@ -92,6 +93,9 @@ export default function DashboardPage() {
           Aperçu de votre activité en temps réel
         </p>
       </div>
+
+      {/* ── First Steps Checklist ───────────────────── */}
+      <FirstSteps />
 
       {/* ── KPI Cards Row 1: Revenue ─────────────────── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

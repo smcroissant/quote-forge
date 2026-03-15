@@ -96,4 +96,23 @@ export const organizationRouter = router({
 
       return updated;
     }),
+
+  // ── Update branding (color, font, footer) ─────────
+  updateBranding: protectedProcedure
+    .input(
+      z.object({
+        primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        fontFamily: z.enum(["inter", "georgia", "arial"]).optional(),
+        customFooter: z.string().nullable().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await ctx.db
+        .update(organizations)
+        .set({ ...input, updatedAt: new Date() })
+        .where(eq(organizations.id, ctx.organizationId!))
+        .returning();
+
+      return updated;
+    }),
 });

@@ -86,6 +86,11 @@ export default function SettingsPage() {
   // Logo
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
+  // Branding
+  const [primaryColor, setPrimaryColor] = useState("#4f46e5");
+  const [fontFamily, setFontFamily] = useState("inter");
+  const [customFooter, setCustomFooter] = useState("");
+
   // ── Populate form from DB ─────────────────────────
   useEffect(() => {
     if (org) {
@@ -106,6 +111,9 @@ export default function SettingsPage() {
       setBankIban(org.bankIban ?? "");
       setBankBic(org.bankBic ?? "");
       setLogoUrl(org.logo ?? null);
+      setPrimaryColor(org.primaryColor ?? "#4f46e5");
+      setFontFamily(org.fontFamily ?? "inter");
+      setCustomFooter(org.customFooter ?? "");
     }
   }, [org]);
 
@@ -127,6 +135,11 @@ export default function SettingsPage() {
 
   const updateLogo = trpc.organization.updateLogo.useMutation({
     onSuccess: () => { toast.success("Logo mis à jour"); refetch(); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const updateBranding = trpc.organization.updateBranding.useMutation({
+    onSuccess: () => { toast.success("Branding mis à jour"); refetch(); },
     onError: (err) => toast.error(err.message),
   });
 
@@ -188,6 +201,26 @@ export default function SettingsPage() {
     };
     reader.readAsDataURL(file);
   }, [updateLogo]);
+
+  const saveBranding = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await updateBranding.mutateAsync({
+        primaryColor,
+        fontFamily: fontFamily as "inter" | "georgia" | "arial",
+        customFooter: customFooter || null,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [primaryColor, fontFamily, customFooter, updateBranding]);
+
+  // ── Font preview map ─────────────────────────────
+  const fontMap: Record<string, string> = {
+    inter: "Inter, system-ui, sans-serif",
+    georgia: "Georgia, 'Times New Roman', serif",
+    arial: "Arial, Helvetica, sans-serif",
+  };
 
   // ── Render ────────────────────────────────────────
   if (isLoading) {
@@ -494,6 +527,7 @@ export default function SettingsPage() {
       {/* ── Tab: Branding ───────────────────────────── */}
       {activeTab === "branding" && (
         <div className="space-y-6">
+          {/* Logo */}
           <Card>
             <CardHeader>
               <CardTitle>Logo</CardTitle>
@@ -502,95 +536,219 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Logo preview */}
               {logoUrl && (
                 <div className="flex items-center gap-4 rounded-lg border p-4">
-                  <img
-                    src={logoUrl}
-                    alt="Logo"
-                    className="h-16 w-16 rounded-lg object-contain"
-                  />
+                  <img src={logoUrl} alt="Logo" className="h-16 w-16 rounded-lg object-contain" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">Logo actuel</p>
-                    <p className="text-xs text-muted-foreground">
-                      Cliquez ci-dessous pour le remplacer
-                    </p>
+                    <p className="text-xs text-muted-foreground">Cliquez ci-dessous pour le remplacer</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setLogoUrl(null);
-                      updateLogo.mutate({ logo: null });
-                    }}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => { setLogoUrl(null); updateLogo.mutate({ logo: null }); }}>
                     Supprimer
                   </Button>
                 </div>
               )}
-
-              {/* Upload */}
               <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors hover:border-primary/50 hover:bg-muted/50">
                 <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium">
-                  {logoUrl ? "Remplacer le logo" : "Télécharger un logo"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  PNG, JPG ou SVG — max 2MB
-                </p>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/svg+xml"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                />
+                <p className="text-sm font-medium">{logoUrl ? "Remplacer le logo" : "Télécharger un logo"}</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG ou SVG — max 2MB</p>
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleLogoUpload} className="hidden" />
               </label>
             </CardContent>
           </Card>
 
-          {/* Preview */}
+          {/* Couleur + Police */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Couleur principale</CardTitle>
+                <CardDescription>Appliquée aux en-têtes, badges et accents de vos devis</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="h-12 w-16 cursor-pointer rounded border bg-transparent"
+                  />
+                  <Input
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    placeholder="#4f46e5"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {["#4f46e5", "#2563eb", "#059669", "#dc2626", "#d97706", "#7c3aed", "#1a1a1a"].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setPrimaryColor(c)}
+                      className="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+                      style={{ backgroundColor: c, borderColor: primaryColor === c ? "currentColor" : "transparent" }}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Police de caractères</CardTitle>
+                <CardDescription>Choisissez la typographie de vos devis</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Select value={fontFamily} onValueChange={(v) => v && setFontFamily(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inter">
+                      <span style={{ fontFamily: "Inter, system-ui, sans-serif" }}>Inter (moderne)</span>
+                    </SelectItem>
+                    <SelectItem value="georgia">
+                      <span style={{ fontFamily: "Georgia, serif" }}>Georgia (classique)</span>
+                    </SelectItem>
+                    <SelectItem value="arial">
+                      <span style={{ fontFamily: "Arial, sans-serif" }}>Arial (neutre)</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm" style={{ fontFamily: fontMap[fontFamily] }}>
+                  Aperçu : Voici comment le texte de votre devis apparaîtra.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Footer personnalisé */}
           <Card>
             <CardHeader>
-              <CardTitle>Aperçu sur devis</CardTitle>
+              <CardTitle>Pied de page personnalisé</CardTitle>
               <CardDescription>
-                Voici à quoi ressemblera l&apos;en-tête de vos devis
+                Texte affiché en bas de chaque devis (ex: "Merci pour votre confiance !")
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    {logoUrl ? (
-                      <img
-                        src={logoUrl}
-                        alt="Logo"
-                        className="h-10 w-10 rounded object-contain"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded bg-muted">
-                        <Building2 className="h-5 w-5 text-muted-foreground" />
+              <Input
+                value={customFooter}
+                onChange={(e) => setCustomFooter(e.target.value)}
+                placeholder="Merci pour votre confiance !"
+                maxLength={200}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">{customFooter.length}/200 caractères</p>
+            </CardContent>
+          </Card>
+
+          {/* Aperçu temps réel */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Aperçu devis</CardTitle>
+              <CardDescription>
+                Voici à quoi ressemblera votre devis avec le branding personnalisé
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="rounded-lg border overflow-hidden"
+                style={{ fontFamily: fontMap[fontFamily] }}
+              >
+                {/* Header */}
+                <div className="p-6 text-white" style={{ backgroundColor: primaryColor }}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="h-10 w-10 rounded object-contain bg-white/20 p-1" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded bg-white/20">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-bold">{name || "Votre Entreprise"}</p>
+                        <p className="text-xs opacity-80">
+                          {address || "Adresse"}, {postalCode || "CP"} {city || "Ville"}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="font-bold">{name || "Votre Entreprise"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {address || "Adresse"}, {postalCode || "CP"} {city || "Ville"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {email || "email@entreprise.fr"}
-                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold tracking-wide">DEVIS</p>
+                      <p className="font-mono text-xs opacity-80">{quotePrefix}202603-0001</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold">DEVIS</p>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {quotePrefix}202603-0001
-                    </p>
+                </div>
+
+                {/* Body preview */}
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Client</span>
+                    <span className="font-medium">Jean Dupont</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Date</span>
+                    <span>{new Date().toLocaleDateString("fr-FR")}</span>
+                  </div>
+                  <div className="border-t pt-4">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b" style={{ color: primaryColor }}>
+                          <th className="py-2 text-left font-medium">Description</th>
+                          <th className="py-2 text-right font-medium">Qté</th>
+                          <th className="py-2 text-right font-medium">Prix HT</th>
+                          <th className="py-2 text-right font-medium">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="py-2">Design de logo</td>
+                          <td className="py-2 text-right">1</td>
+                          <td className="py-2 text-right">500,00 €</td>
+                          <td className="py-2 text-right font-medium">500,00 €</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2">Développement site web</td>
+                          <td className="py-2 text-right">3</td>
+                          <td className="py-2 text-right">800,00 €</td>
+                          <td className="py-2 text-right font-medium">2 400,00 €</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="w-48 space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Sous-total HT</span>
+                        <span>2 900,00 €</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">TVA (20%)</span>
+                        <span>580,00 €</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-1 font-bold" style={{ color: primaryColor }}>
+                        <span>Total TTC</span>
+                        <span>3 480,00 €</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* Footer */}
+                {customFooter && (
+                  <div className="border-t px-6 py-3 text-center text-xs text-muted-foreground">
+                    {customFooter}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Save */}
+          <div className="flex justify-end">
+            <Button onClick={saveBranding} disabled={isSaving}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Enregistrer le branding
+            </Button>
+          </div>
         </div>
       )}
 

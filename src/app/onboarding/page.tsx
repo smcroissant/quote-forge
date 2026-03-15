@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Building2, Briefcase, Settings, ChevronRight, ChevronLeft, PartyPopper } from "lucide-react";
+import { Loader2, Building2, Briefcase, Settings, ChevronRight, ChevronLeft, PartyPopper, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -119,10 +119,6 @@ export default function OnboardingPage() {
         toast.error(result.error.message || "Erreur lors de la création de l'organisation");
         return;
       }
-
-      // TODO: Update org with sector, currency, taxRate, taxEnabled
-      // via tRPC mutation once the org settings router is created.
-      // For now, the org is created with defaults from the schema.
 
       toast.success("Bienvenue sur QuoteForge ! Créez votre premier devis 🥐");
       router.push("/dashboard");
