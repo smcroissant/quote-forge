@@ -68,6 +68,16 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
+const FONT_MAP: Record<string, string> = {
+  inter: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
+  georgia: "Georgia, 'Times New Roman', serif",
+  arial: "Arial, Helvetica, sans-serif",
+};
+
+function resolveFont(fontFamily: string | undefined): string {
+  return FONT_MAP[fontFamily ?? "inter"] ?? FONT_MAP.inter;
+}
+
 const statusLabels: Record<string, string> = {
   draft: "Brouillon",
   sent: "Envoyé",
@@ -193,10 +203,13 @@ function buildSignatureHTML(): string {
 
 function renderClassicLayout(data: QuotePDFData): string {
   const t = data.template;
+  const primary = t?.primaryColor ?? "#1a1a1a";
   const accent = t?.accentColor ?? "#3b82f6";
+  const font = resolveFont(t?.fontFamily);
   const showNotes = t?.showNotes ?? true;
   const showTerms = t?.showTerms ?? false;
   const termsText = t?.termsText ?? null;
+  const customFooter = null; // Will be passed from org settings later
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -206,7 +219,7 @@ function renderClassicLayout(data: QuotePDFData): string {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-family: ${font};
       color: #1a1a1a; background: #fff; line-height: 1.5;
       padding: 40px; font-size: 13px;
     }
@@ -214,6 +227,10 @@ function renderClassicLayout(data: QuotePDFData): string {
     @page {
       size: A4;
       margin: 30px;
+      @bottom-center {
+        content: "Page " counter(page) " / " counter(pages);
+        font-size: 9px; color: #999;
+      }
     }
     @media print {
       body { padding: 0; }
@@ -225,12 +242,12 @@ function renderClassicLayout(data: QuotePDFData): string {
     }
     .header {
       display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #1a1a1a;
+      margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid ${primary};
     }
     .company-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
     .company-info { color: #666; font-size: 12px; line-height: 1.6; }
     .quote-title { text-align: right; }
-    .quote-title h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .quote-title h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: ${primary}; }
     .quote-number { font-size: 14px; color: #666; }
     .status-badge {
       display: inline-block; padding: 4px 12px; border-radius: 20px;
@@ -262,7 +279,7 @@ function renderClassicLayout(data: QuotePDFData): string {
     .totals-table td { padding: 8px 12px; }
     .totals-table .label { color: #666; }
     .totals-table .value { text-align: right; font-weight: 500; }
-    .totals-table .total-row { border-top: 2px solid #1a1a1a; font-weight: 700; font-size: 16px; }
+    .totals-table .total-row { border-top: 2px solid ${primary}; font-weight: 700; font-size: 16px; color: ${primary}; }
     .totals-table .total-row td { padding-top: 12px; }
     .notes { background: #f8f9fa; padding: 16px 20px; border-radius: 8px; margin-bottom: 40px; }
     .notes-label { font-weight: 600; margin-bottom: 4px; }
@@ -341,6 +358,7 @@ function renderClassicLayout(data: QuotePDFData): string {
 
   <div class="footer">
     ${escapeHtml(data.organization.name)} — Document généré par QuoteForge
+    ${customFooter ? "<br>" + escapeHtml(customFooter) : ""}
   </div>
 </body>
 </html>`;
