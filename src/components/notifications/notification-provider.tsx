@@ -49,7 +49,7 @@ const TOAST_ICONS: Record<string, React.ReactNode> = {
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [lastPoll, setLastPoll] = useState(() => new Date().toISOString());
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const seenIdsRef = useRef<Set<string>>(new Set());
   const initialized = useRef(false);
 
   // Badge counts
@@ -73,11 +73,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     for (const change of pollData.changes) {
       // Skip already seen
-      if (seenIds.has(change.id)) continue;
+      if (seenIdsRef.current.has(change.id)) continue;
 
       // On first load, just mark as seen (don't show toasts for old events)
       if (!initialized.current) {
-        setSeenIds((prev) => new Set(prev).add(change.id));
+        seenIdsRef.current = new Set(seenIdsRef.current).add(change.id);
         continue;
       }
 
@@ -105,16 +105,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         });
       }
 
-      setSeenIds((prev) => new Set(prev).add(change.id));
+      seenIdsRef.current = new Set(seenIdsRef.current).add(change.id);
     }
 
     // Update last poll time
     if (pollData.changes.length > 0) {
-      setLastPoll(new Date().toISOString());
+      queueMicrotask(() => setLastPoll(new Date().toISOString()));
       // Also refresh badge counts when there are changes
       refetchCounts();
     }
-  }, [pollData, seenIds, refetchCounts]);
+  }, [pollData, refetchCounts]);
 
   // Mark as initialized after first render
   useEffect(() => {

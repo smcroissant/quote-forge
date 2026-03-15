@@ -182,7 +182,7 @@ export const notificationsRouter = router({
             } catch {}
 
             let quoteNumber = meta.quoteNumber as string | undefined;
-            let invoiceNumber = meta.invoiceNumber as string | undefined;
+            const invoiceNumber = meta.invoiceNumber as string | undefined;
 
             if (!quoteNumber && activity.quoteId) {
               const [q] = await ctx.db

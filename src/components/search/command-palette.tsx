@@ -105,8 +105,11 @@ export function CommandPalette() {
   // Load recent pages on open
   useEffect(() => {
     if (open) {
-      setRecent(getRecentPages());
-      setSelectedIndex(0);
+      const pages = getRecentPages();
+      queueMicrotask(() => {
+        setRecent(pages);
+        setSelectedIndex(0);
+      });
     }
   }, [open]);
 
@@ -127,7 +130,7 @@ export function CommandPalette() {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
-      setQuery("");
+      queueMicrotask(() => setQuery(""));
     }
   }, [open]);
 

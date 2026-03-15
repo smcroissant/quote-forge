@@ -628,7 +628,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Pied de page personnalisé</CardTitle>
               <CardDescription>
-                Texte affiché en bas de chaque devis (ex: "Merci pour votre confiance !")
+                Texte affiché en bas de chaque devis (ex: &quot;Merci pour votre confiance !&quot;)
               </CardDescription>
             </CardHeader>
             <CardContent>

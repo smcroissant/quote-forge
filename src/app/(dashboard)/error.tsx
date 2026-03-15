@@ -25,10 +25,10 @@ export default function DashboardError({
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
-          <CardTitle>Oups, quelque chose s'est mal passé</CardTitle>
+          <CardTitle>Oups, quelque chose s&apos;est mal passé</CardTitle>
           <CardDescription>
-            Une erreur inattendue s'est produite. Vous pouvez réessayer ou
-            retourner à l'accueil.
+            Une erreur inattendue s&apos;est produite. Vous pouvez réessayer ou
+            retourner à l&apos;accueil.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -38,12 +38,12 @@ export default function DashboardError({
           </Button>
           <Button variant="outline" render={<Link href="/dashboard" />} className="w-full">
             <Home className="mr-2 h-4 w-4" />
-            Retour à l'accueil
+            Retour à l&apos;accueil
           </Button>
           {process.env.NODE_ENV === "development" && (
             <details className="mt-4 rounded-lg bg-muted p-3 text-xs">
               <summary className="cursor-pointer font-medium text-muted-foreground">
-                Détails de l'erreur (dev)
+                Détails de l&apos;erreur (dev)
               </summary>
               <pre className="mt-2 whitespace-pre-wrap text-destructive">
                 {error.message}

@@ -299,6 +299,7 @@ export default function QuoteDetailPage() {
   }
 
   const status = statusConfig[quote.status] ?? statusConfig.draft;
+  const linkedInvoice = quote as unknown as { invoice?: { id: string; invoiceNumber: string; status: string } | null };
   const StatusIcon = status.icon;
   const validTransitions = transitions?.validTransitions ?? [];
   const isTerminal = transitions?.isTerminal ?? false;
@@ -318,11 +319,11 @@ export default function QuoteDetailPage() {
                 <StatusIcon className="mr-1 h-3 w-3" />
                 {status.label}
               </Badge>
-              {quote.status === "invoiced" && (quote as any).invoice && (
+              {quote.status === "invoiced" && linkedInvoice.invoice && (
                 <Button variant="outline" size="sm" render={(props) => (
-                  <Link href={`/invoices/${((quote as any).invoice).id}`} {...props}>
+                  <Link href={`/invoices/${linkedInvoice.invoice!.id}`} {...props}>
                     <Receipt className="mr-1.5 size-3.5" />
-                    {((quote as any).invoice).invoiceNumber}
+                    {linkedInvoice.invoice!.invoiceNumber}
                   </Link>
                 )} />
               )}

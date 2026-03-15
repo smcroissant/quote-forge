@@ -155,14 +155,15 @@ export function TeamTab() {
       .slice(0, 2);
   };
 
-  const formatExpiry = (date: Date) => {
+  const formatExpiry = useCallback((date: Date) => {
+    const now = Date.now();
     const days = Math.ceil(
-      (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      (new Date(date).getTime() - now) / (1000 * 60 * 60 * 24)
     );
     if (days <= 0) return "Expirée";
     if (days === 1) return "Expire demain";
     return `Expire dans ${days} jours`;
-  };
+  }, []);
 
   const isLoading = membersLoading || invitationsLoading;
 
@@ -426,7 +427,7 @@ export function TeamTab() {
                 <Badge variant="default">Propriétaire</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Accès total. Peut gérer les rôles, supprimer l'organisation,
+                Accès total. Peut gérer les rôles, supprimer l&apos;organisation,
                 et tout le reste.
               </p>
             </div>
@@ -444,7 +445,7 @@ export function TeamTab() {
                 <Badge variant="outline">Membre</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Peut créer et gérer ses devis et factures. Pas d'accès aux
+                Peut créer et gérer ses devis et factures. Pas d&apos;accès aux
                 paramètres ni à la suppression.
               </p>
             </div>
