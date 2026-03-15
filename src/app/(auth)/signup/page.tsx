@@ -248,9 +248,9 @@ export default function SignupPage() {
                 disabled={isLoading}
               />
               <label htmlFor="cgu" className="text-sm text-muted-foreground">
-                J'accepte les{" "}
+                J&apos;accepte les{" "}
                 <Link href="/cgu" className="text-primary hover:underline">
-                  conditions générales d'utilisation
+                  conditions générales d&apos;utilisation
                 </Link>
               </label>
             </div>

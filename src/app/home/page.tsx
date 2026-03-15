@@ -148,7 +148,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Tout ce qu'il faut pour gérer vos devis
+              Tout ce qu&apos;il faut pour gérer vos devis
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
               Pas de tableur, pas de PDF manuel. Juste un outil qui marche.

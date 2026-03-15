@@ -105,8 +105,13 @@ export function CommandPalette() {
   // Load recent pages on open
   useEffect(() => {
     if (open) {
-      setRecent(getRecentPages());
-      setSelectedIndex(0);
+      requestAnimationFrame(() => {
+        setRecent(getRecentPages());
+        setSelectedIndex(0);
+      });
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      requestAnimationFrame(() => setQuery(""));
     }
   }, [open]);
 
@@ -121,15 +126,6 @@ export function CommandPalette() {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  // Focus input when open
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      setQuery("");
-    }
-  }, [open]);
 
   // Build flat list of navigable items
   const items = query.length >= 2 && searchResults

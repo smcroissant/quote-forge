@@ -77,7 +77,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       // On first load, just mark as seen (don't show toasts for old events)
       if (!initialized.current) {
-        setSeenIds((prev) => new Set(prev).add(change.id));
+        requestAnimationFrame(() =>
+          setSeenIds((prev) => new Set(prev).add(change.id))
+        );
         continue;
       }
 
@@ -105,12 +107,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         });
       }
 
-      setSeenIds((prev) => new Set(prev).add(change.id));
+      requestAnimationFrame(() =>
+        setSeenIds((prev) => new Set(prev).add(change.id))
+      );
     }
 
     // Update last poll time
     if (pollData.changes.length > 0) {
-      setLastPoll(new Date().toISOString());
+      requestAnimationFrame(() => setLastPoll(new Date().toISOString()));
       // Also refresh badge counts when there are changes
       refetchCounts();
     }

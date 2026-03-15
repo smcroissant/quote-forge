@@ -163,14 +163,14 @@ export default function TeamPage() {
   };
 
   // Format expiry
-  const formatExpiry = (date: Date) => {
+  const formatExpiry = useCallback((date: Date) => {
     const days = Math.ceil(
       (new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     );
     if (days <= 0) return "Expirée";
     if (days === 1) return "Expire demain";
     return `Expire dans ${days} jours`;
-  };
+  }, []);
 
   const isLoading = membersLoading || invitationsLoading;
 
@@ -257,7 +257,7 @@ export default function TeamPage() {
                 ) : (
                   <UserPlus className="mr-2 h-4 w-4" />
                 )}
-                Envoyer l'invitation
+                Envoyer l&apos;invitation
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -444,7 +444,7 @@ export default function TeamPage() {
                     <Badge variant="default">Propriétaire</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Accès total. Peut gérer les rôles, supprimer l'organisation,
+                    Accès total. Peut gérer les rôles, supprimer l&apos;organisation,
                     et tout le reste.
                   </p>
                 </div>
@@ -462,7 +462,7 @@ export default function TeamPage() {
                     <Badge variant="outline">Membre</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Peut créer et gérer ses devis et factures. Pas d'accès aux
+                    Peut créer et gérer ses devis et factures. Pas d&apos;accès aux
                     paramètres ni à la suppression.
                   </p>
                 </div>
