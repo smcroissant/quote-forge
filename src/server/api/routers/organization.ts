@@ -29,6 +29,41 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export const organizationRouter = router({
+  // ── Complete onboarding ───────────────────────────
+  completeOnboarding: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1, "Le nom est requis"),
+        email: z.string().email().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        address: z.string().nullable().optional(),
+        sector: z.string().nullable().optional(),
+        currency: z.string().default("EUR"),
+        taxRate: z.string().default("20.00"),
+        taxEnabled: z.boolean().default(true),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [updated] = await ctx.db
+        .update(organizations)
+        .set({
+          name: input.name,
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          address: input.address ?? null,
+          sector: input.sector ?? null,
+          currency: input.currency,
+          taxRate: input.taxRate,
+          taxEnabled: input.taxEnabled,
+          onboardingCompleted: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(organizations.id, ctx.organizationId!))
+        .returning();
+
+      return updated;
+    }),
+
   // ── Get current org settings ──────────────────────
   get: protectedProcedure.query(async ({ ctx }) => {
     const [org] = await ctx.db

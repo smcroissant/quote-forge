@@ -86,6 +86,23 @@ export async function GET(
           cssOverrides: tpl.cssOverrides ?? null,
         };
       }
+    } else if (org) {
+      // Fallback to organization branding when no template is selected
+      template = {
+        layout: "classic",
+        primaryColor: org.primaryColor ?? "#1a1a1a",
+        accentColor: org.primaryColor ?? "#3b82f6",
+        fontFamily: org.fontFamily ?? "system",
+        showLogo: true,
+        showOrgDetails: true,
+        showClientDetails: true,
+        showNotes: true,
+        showTerms: false,
+        termsText: null,
+        headerHtml: null,
+        footerHtml: org.customFooter ?? null,
+        cssOverrides: null,
+      };
     }
 
     // Generate PDF

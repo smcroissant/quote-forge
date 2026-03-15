@@ -248,6 +248,11 @@ export default function QuoteDetailPage() {
     id: quoteId,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const invoice = (quote as Record<string, any>)?.invoice as
+    | { id: string; invoiceNumber: string }
+    | undefined;
+
   const { data: transitions } = trpc.quotes.getValidTransitions.useQuery(
     { id: quoteId },
     { enabled: !!quoteId }
@@ -318,11 +323,11 @@ export default function QuoteDetailPage() {
                 <StatusIcon className="mr-1 h-3 w-3" />
                 {status.label}
               </Badge>
-              {quote.status === "invoiced" && (quote as any).invoice && (
+              {quote.status === "invoiced" && invoice && (
                 <Button variant="outline" size="sm" render={(props) => (
-                  <Link href={`/invoices/${((quote as any).invoice).id}`} {...props}>
+                  <Link href={`/invoices/${invoice.id}`} {...props}>
                     <Receipt className="mr-1.5 size-3.5" />
-                    {((quote as any).invoice).invoiceNumber}
+                    {invoice.invoiceNumber}
                   </Link>
                 )} />
               )}

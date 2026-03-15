@@ -25,7 +25,7 @@ export default function AuthError({
           </div>
           <CardTitle>Erreur</CardTitle>
           <CardDescription>
-            Une erreur s'est produite lors du chargement de cette page.
+            Une erreur s&apos;est produite lors du chargement de cette page.
           </CardDescription>
         </CardHeader>
         <CardContent>

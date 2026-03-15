@@ -13,13 +13,13 @@ export default function DashboardNotFound() {
           </div>
           <CardTitle className="text-2xl">Page introuvable</CardTitle>
           <CardDescription>
-            La page que vous recherchez n'existe pas ou a été déplacée.
+            La page que vous recherchez n&apos;existe pas ou a été déplacée.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button render={<Link href="/dashboard" />}>
             <Home className="mr-2 h-4 w-4" />
-            Retour à l'accueil
+            Retour à l&apos;accueil
           </Button>
         </CardContent>
       </Card>

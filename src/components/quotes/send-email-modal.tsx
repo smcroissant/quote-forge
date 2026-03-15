@@ -75,7 +75,7 @@ export function SendEmailModal({
         <DialogHeader>
           <DialogTitle>Envoyer le devis par email</DialogTitle>
           <DialogDescription>
-            Le PDF du devis <strong>{quoteNumber}</strong> sera joint à l'email.
+            Le PDF du devis <strong>{quoteNumber}</strong> sera joint à l&apos;email.
           </DialogDescription>
         </DialogHeader>
 
@@ -123,7 +123,7 @@ export function SendEmailModal({
             </Label>
             <Textarea
               id="email-message"
-              placeholder="Ajoutez un message personnel à l'email..."
+              placeholder="Ajoutez un message personnel à l&apos;email..."
               value={customMessage}
               onChange={(e) => setCustomMessage(e.target.value)}
               maxLength={500}

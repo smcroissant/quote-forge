@@ -45,7 +45,7 @@ function AcceptInvitationContent() {
   // Mutations
   const acceptMutation = trpc.organization.acceptInvitation.useMutation({
     onSuccess: () => {
-      toast.success("Bienvenue dans l'équipe ! 🎉");
+      toast.success("Bienvenue dans l&apos;équipe ! 🎉");
       setDone(true);
       setTimeout(() => router.push("/dashboard"), 2000);
     },
@@ -81,7 +81,7 @@ function AcceptInvitationContent() {
               <X className="mx-auto mb-4 h-12 w-12 text-destructive" />
               <h2 className="mb-2 text-xl font-bold">Lien invalide</h2>
               <p className="text-muted-foreground">
-                Ce lien d'invitation n'est pas valide.
+                Ce lien d&apos;invitation n&apos;est pas valide.
               </p>
               <Button className="mt-4" onClick={() => router.push("/dashboard")}>
                 Retour au dashboard
@@ -110,7 +110,7 @@ function AcceptInvitationContent() {
               <X className="mx-auto mb-4 h-12 w-12 text-destructive" />
               <h2 className="mb-2 text-xl font-bold">Invitation introuvable</h2>
               <p className="text-muted-foreground">
-                Cette invitation n'existe pas ou a expiré.
+                Cette invitation n&apos;existe pas ou a expiré.
               </p>
               <Button className="mt-4" onClick={() => router.push("/dashboard")}>
                 Retour au dashboard
@@ -131,7 +131,7 @@ function AcceptInvitationContent() {
               <Clock className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
               <h2 className="mb-2 text-xl font-bold">Invitation expirée</h2>
               <p className="text-muted-foreground">
-                Cette invitation n'est plus valide. Demandez une nouvelle invitation à l'administrateur.
+                Cette invitation n&apos;est plus valide. Demandez une nouvelle invitation à l&apos;administrateur.
               </p>
               <Button className="mt-4" onClick={() => router.push("/dashboard")}>
                 Retour au dashboard
@@ -150,7 +150,7 @@ function AcceptInvitationContent() {
           <CardContent className="pt-6">
             <div className="text-center">
               <Check className="mx-auto mb-4 h-12 w-12 text-green-600" />
-              <h2 className="mb-2 text-xl font-bold">C'est fait !</h2>
+              <h2 className="mb-2 text-xl font-bold">C&apos;est fait !</h2>
               <p className="text-muted-foreground">
                 Redirection en cours...
               </p>
@@ -170,7 +170,7 @@ function AcceptInvitationContent() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <UserPlus className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-xl">Invitation à rejoindre l'équipe</CardTitle>
+          <CardTitle className="text-xl">Invitation à rejoindre l&apos;équipe</CardTitle>
           <CardDescription>
             Vous êtes invité(e) à rejoindre une organisation sur QuoteForge
           </CardDescription>

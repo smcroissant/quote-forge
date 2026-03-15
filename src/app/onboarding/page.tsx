@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { trpc } from "@/lib/trpc-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,6 +104,8 @@ export default function OnboardingPage() {
     router.push("/dashboard");
   };
 
+  const completeOnboarding = trpc.organization.completeOnboarding.useMutation();
+
   // ── Submit ────────────────────────────────────────
   const handleSubmit = async () => {
     if (!canProceedStep1) return;
@@ -119,6 +122,18 @@ export default function OnboardingPage() {
         toast.error(result.error.message || "Erreur lors de la création de l'organisation");
         return;
       }
+
+      // 2. Save all onboarding fields (email, phone, address, sector, billing)
+      await completeOnboarding.mutateAsync({
+        name: orgName.trim(),
+        email: orgEmail.trim() || null,
+        phone: orgPhone.trim() || null,
+        address: orgAddress.trim() || null,
+        sector: sector === "autre" ? sectorOther.trim() : sector || null,
+        currency,
+        taxRate,
+        taxEnabled,
+      });
 
       toast.success("Bienvenue sur QuoteForge ! Créez votre premier devis 🥐");
       router.push("/dashboard");
