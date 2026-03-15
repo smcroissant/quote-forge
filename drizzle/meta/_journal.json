@@ -36,6 +36,13 @@
       "when": 1773534630284,
       "tag": "0004_polite_dark_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773544831362,
+      "tag": "0005_wealthy_king_cobra",
+      "breakpoints": true
     }
   ]
 }

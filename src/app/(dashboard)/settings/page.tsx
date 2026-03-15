@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Building2, Receipt, Palette, Upload, Check, Bell, Play } from "lucide-react";
+import { Loader2, Save, Building2, Receipt, Palette, Upload, Check, Bell, Play, Users } from "lucide-react";
+import { TeamTab } from "@/components/settings/team-tab";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +50,7 @@ const TABS = [
   { id: "billing", label: "Facturation", icon: Receipt },
   { id: "branding", label: "Branding", icon: Palette },
   { id: "reminders", label: "Rappels", icon: Bell },
+  { id: "team", label: "Équipe", icon: Users },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -755,6 +757,11 @@ export default function SettingsPage() {
       {/* ── Reminders Tab ──────────────────────────── */}
       {activeTab === "reminders" && (
         <RemindersTab />
+      )}
+
+      {/* ── Team Tab ───────────────────────────────── */}
+      {activeTab === "team" && (
+        <TeamTab />
       )}
     </div>
   );
