@@ -239,6 +239,27 @@ export const quotesRouter = router({
       return activities;
     }),
 
+  // ── Get recent activity (global feed) ─────────────
+  getRecentActivity: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(50).optional().default(20) }))
+    .query(async ({ ctx, input }) => {
+      const activities = await ctx.db
+        .select({
+          activity: quoteActivities,
+          quoteNumber: quotes.quoteNumber,
+          quoteTitle: quotes.title,
+          clientName: clients.name,
+        })
+        .from(quoteActivities)
+        .innerJoin(quotes, eq(quoteActivities.quoteId, quotes.id))
+        .leftJoin(clients, eq(quotes.clientId, clients.id))
+        .where(eq(quotes.organizationId, ctx.organizationId!))
+        .orderBy(desc(quoteActivities.createdAt))
+        .limit(input.limit);
+
+      return activities;
+    }),
+
   // ── Create quote ──────────────────────────────────
   create: protectedProcedure
     .input(createQuoteInput)

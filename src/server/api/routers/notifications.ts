@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
-import { quotes, invoices, quoteActivities } from "@/db/schema";
+import { quotes, invoices, quoteActivities, clients } from "@/db/schema";
 import { eq, and, desc, inArray, sql, gte } from "drizzle-orm";
 
 export const notificationsRouter = router({
@@ -92,22 +92,35 @@ export const notificationsRouter = router({
             if (activity.metadata) meta = JSON.parse(activity.metadata);
           } catch {}
 
+          let clientName: string | undefined;
+
           // Try to get quote number from metadata first
           let quoteNumber = meta.quoteNumber as string | undefined;
 
           // If not in metadata, look it up
           if (!quoteNumber && activity.quoteId) {
             const [q] = await ctx.db
-              .select({ quoteNumber: quotes.quoteNumber, title: quotes.title })
+              .select({ quoteNumber: quotes.quoteNumber, title: quotes.title, clientId: quotes.clientId })
               .from(quotes)
               .where(eq(quotes.id, activity.quoteId))
               .limit(1);
             quoteNumber = q?.quoteNumber;
+
+            // Get client name
+            if (q?.clientId) {
+              const [c] = await ctx.db
+                .select({ name: clients.name })
+                .from(clients)
+                .where(eq(clients.id, q.clientId))
+                .limit(1);
+              clientName = c?.name ?? undefined;
+            }
           }
 
           return {
             ...activity,
             quoteNumber: quoteNumber ?? "—",
+            clientName,
             metadata: meta,
           };
         })

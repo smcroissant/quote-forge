@@ -457,9 +457,14 @@ function RecentActivity() {
                   <div className="pb-4 pt-0.5 flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm">
-                        <span className="font-mono text-xs text-muted-foreground">{activity.quoteNumber}</span>
+                        <Link href={`/quotes/${activity.quoteId}`} className="font-mono text-xs text-indigo-600 hover:underline">
+                          {activity.quoteNumber}
+                        </Link>
                         {" — "}
                         <span className="text-muted-foreground">{description}</span>
+                        {activity.clientName && (
+                          <span className="text-muted-foreground"> · {activity.clientName}</span>
+                        )}
                       </p>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatTimeAgo(activity.createdAt)}
