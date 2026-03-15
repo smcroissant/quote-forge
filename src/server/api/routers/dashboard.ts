@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, gte, lt, lte, desc, sql, inArray } from "drizzle-orm";
 import { router, protectedProcedure } from "../trpc";
 import { quotes, invoices, clients } from "@/db/schema";
 
@@ -182,6 +182,89 @@ export const dashboardRouter = router({
       },
       topClients,
       monthlyRevenue,
+    };
+  }),
+
+  // ── Get advanced stats (pending quotes + conversion trend) ──
+  getAdvancedStats: protectedProcedure.query(async ({ ctx }) => {
+    const orgId = ctx.organizationId!;
+    const now = new Date();
+
+    // ── Pending quotes: sent > 3 days without response ──
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+    const pendingQuotes = await ctx.db
+      .select({
+        id: quotes.id,
+        quoteNumber: quotes.quoteNumber,
+        total: quotes.total,
+        sentAt: quotes.sentAt,
+        createdAt: quotes.createdAt,
+        clientName: clients.name,
+      })
+      .from(quotes)
+      .leftJoin(clients, eq(quotes.clientId, clients.id))
+      .where(
+        and(
+          eq(quotes.organizationId, orgId),
+          eq(quotes.status, "sent"),
+          lte(quotes.sentAt, threeDaysAgo)
+        )
+      )
+      .orderBy(desc(quotes.sentAt))
+      .limit(10);
+
+    // ── Conversion rate trend: this month vs last month ──
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const allQuotes = await ctx.db
+      .select({
+        status: quotes.status,
+        createdAt: quotes.createdAt,
+      })
+      .from(quotes)
+      .where(eq(quotes.organizationId, orgId));
+
+    let thisMonthTotal = 0;
+    let thisMonthAccepted = 0;
+    let lastMonthTotal = 0;
+    let lastMonthAccepted = 0;
+
+    for (const q of allQuotes) {
+      const createdAt = new Date(q.createdAt);
+      if (createdAt >= startOfMonth) {
+        thisMonthTotal++;
+        if (q.status === "accepted" || q.status === "invoiced") thisMonthAccepted++;
+      } else if (createdAt >= startOfLastMonth && createdAt < startOfMonth) {
+        lastMonthTotal++;
+        if (q.status === "accepted" || q.status === "invoiced") lastMonthAccepted++;
+      }
+    }
+
+    const thisMonthRate = thisMonthTotal > 0
+      ? Math.round((thisMonthAccepted / thisMonthTotal) * 100)
+      : 0;
+    const lastMonthRate = lastMonthTotal > 0
+      ? Math.round((lastMonthAccepted / lastMonthTotal) * 100)
+      : 0;
+
+    return {
+      pendingQuotes: pendingQuotes.map(q => ({
+        id: q.id,
+        quoteNumber: q.quoteNumber,
+        total: parseFloat(q.total) || 0,
+        clientName: q.clientName ?? "Client",
+        sentAt: q.sentAt,
+        daysWaiting: q.sentAt
+          ? Math.floor((now.getTime() - new Date(q.sentAt).getTime()) / (1000 * 60 * 60 * 24))
+          : 0,
+      })),
+      conversionTrend: {
+        thisMonthRate,
+        lastMonthRate,
+        difference: thisMonthRate - lastMonthRate,
+      },
     };
   }),
 });

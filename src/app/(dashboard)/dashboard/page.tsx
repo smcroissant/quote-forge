@@ -74,6 +74,7 @@ function MiniBarChart({ data }: { data: { label: string; invoiced: number; paid:
 
 export default function DashboardPage() {
   const { data: kpis, isLoading } = trpc.dashboard.getKPIs.useQuery();
+  const { data: advanced } = trpc.dashboard.getAdvancedStats.useQuery();
 
   // Compute month-over-month change
   const revenueChange = kpis?.revenue.lastMonth
@@ -144,15 +145,26 @@ export default function DashboardPage() {
         {/* Conversion devis → facture */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Devis → Facture</CardTitle>
+            <CardTitle className="text-sm font-medium">Taux conversion</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${kpis?.invoices.quoteToInvoiceRate ?? 0}%`}
+              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : `${kpis?.quotes.conversionRate ?? 0}%`}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {kpis?.quotes.conversionRate ?? 0}% devis acceptés · {kpis?.invoices.quoteToInvoiceRate ?? 0}% facturés
+            <p className="text-xs flex items-center gap-1 mt-1">
+              {advanced?.conversionTrend ? (
+                advanced.conversionTrend.difference >= 0 ? (
+                  <span className="text-green-600 flex items-center">
+                    <ArrowUpRight className="h-3 w-3" />+{advanced.conversionTrend.difference}pts
+                  </span>
+                ) : (
+                  <span className="text-red-600 flex items-center">
+                    <ArrowDownRight className="h-3 w-3" />{advanced.conversionTrend.difference}pts
+                  </span>
+                )
+              ) : null}
+              <span className="text-muted-foreground">vs mois dernier ({advanced?.conversionTrend.lastMonthRate ?? 0}%)</span>
             </p>
           </CardContent>
         </Card>
@@ -333,6 +345,55 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* ── Pending Quotes Alert ──────────────────────── */}
+      {advanced?.pendingQuotes && advanced.pendingQuotes.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-amber-800">
+              <Bell className="h-5 w-5 text-amber-600" />
+              Devis en attente de réponse ({advanced.pendingQuotes.length})
+            </CardTitle>
+            <CardDescription className="text-amber-700">
+              Ces devis ont été envoyés il y a plus de 3 jours sans retour du client
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {advanced.pendingQuotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  className="flex items-center justify-between rounded-lg border border-amber-200 bg-white p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+                      <FileText className="h-4 w-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {quote.quoteNumber} — {quote.clientName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Envoyé il y a {quote.daysWaiting} jours
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold">
+                      {formatCurrency(quote.total)} €
+                    </span>
+                    <Link href={`/quotes/${quote.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Quick Actions ─────────────────────────────── */}
       <Card>
         <CardHeader>
@@ -347,15 +408,15 @@ export default function DashboardPage() {
               </Link>
             )} />
             <Button variant="outline" render={(props) => (
-              <Link href="/invoices" {...props}>
-                <Receipt className="mr-2 h-4 w-4" />
-                Voir les factures
+              <Link href="/clients" {...props}>
+                <Users className="mr-2 h-4 w-4" />
+                Ajouter client
               </Link>
             )} />
             <Button variant="outline" render={(props) => (
-              <Link href="/clients" {...props}>
-                <Users className="mr-2 h-4 w-4" />
-                Gérer les clients
+              <Link href="/invoices" {...props}>
+                <Receipt className="mr-2 h-4 w-4" />
+                Voir les factures
               </Link>
             )} />
             <Button variant="outline" render={(props) => (
