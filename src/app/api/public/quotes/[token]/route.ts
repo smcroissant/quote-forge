@@ -35,7 +35,7 @@ export async function GET(
     const userAgent = request.headers.get("user-agent") ?? null;
     const shouldMarkViewed = quote.status === "sent";
 
-    Promise.all([
+    await Promise.all([
       db.insert(quoteViews).values({ quoteId: quote.id, ipAddress, userAgent }),
       db.update(quotes).set({
         viewCount: (quote.viewCount ?? 0) + 1,
